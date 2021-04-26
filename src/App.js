@@ -70,8 +70,8 @@ function App() {
   wsLink.subscriptionClient.on("disconnected", () => {
     console.log("disconnected subs");
   });
-  //wsLink.subscriptionClient.maxConnectTimeGenerator.duration = () =>
-  //wsLink.subscriptionClient.maxConnectTimeGenerator.max;
+  wsLink.subscriptionClient.maxConnectTimeGenerator.duration = () =>
+  wsLink.subscriptionClient.maxConnectTimeGenerator.max;
   const splitLink = split(
     ({ query }) => {
       const definition = getMainDefinition(query);
