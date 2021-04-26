@@ -70,6 +70,12 @@ function App() {
   wsLink.subscriptionClient.on("disconnected", () => {
     console.log("disconnected subs "  + new Date().toString());
   });
+  wsLink.subscriptionClient.on("onError", (error) => {
+    console.log(error.message + "  "  + new Date().toString());
+  });
+
+
+  console.log("onError", ) 
   wsLink.subscriptionClient.maxConnectTimeGenerator.duration = () =>
   wsLink.subscriptionClient.maxConnectTimeGenerator.max;
   const splitLink = split(
