@@ -75,9 +75,11 @@ function App() {
   });
 
 
-  console.log("onError", ) 
+  console.log("timeout", wsLink.subscriptionClient.maxConnectTimeGenerator.duration) 
   wsLink.subscriptionClient.maxConnectTimeGenerator.duration = () =>
   wsLink.subscriptionClient.maxConnectTimeGenerator.max;
+
+  console.log("timeout after", wsLink.subscriptionClient.maxConnectTimeGenerator.duration) 
   const splitLink = split(
     ({ query }) => {
       const definition = getMainDefinition(query);
