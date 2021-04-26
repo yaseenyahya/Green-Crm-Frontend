@@ -52,23 +52,23 @@ function App() {
     },
   });
   wsLink.subscriptionClient.on("connecting", () => {
-    console.log("connecting subs");
+    console.log("connecting subs " + new Date().toString());
   });
   
   wsLink.subscriptionClient.on("connected", () => {
-    console.log("connected subs");
+    console.log("connected subs "  + new Date().toString());
   });
   
   wsLink.subscriptionClient.on("reconnecting", () => {
-    console.log("reconnecting subs");
+    console.log("reconnecting subs "  + new Date().toString());
   });
   
   wsLink.subscriptionClient.on("reconnected", () => {
-    console.log("reconnected subs");
+    console.log("reconnected subs "  + new Date().toString());
   });
   
   wsLink.subscriptionClient.on("disconnected", () => {
-    console.log("disconnected subs");
+    console.log("disconnected subs "  + new Date().toString());
   });
   wsLink.subscriptionClient.maxConnectTimeGenerator.duration = () =>
   wsLink.subscriptionClient.maxConnectTimeGenerator.max;
