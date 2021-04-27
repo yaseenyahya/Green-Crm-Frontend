@@ -47,7 +47,7 @@ function App() {
   const wsLink = new WebSocketLink({
    
     options: {
-      timeout: 60000,
+      timeout: 600000,
       minTimeout:600000,
       reconnect: true,
       lazy: true,
