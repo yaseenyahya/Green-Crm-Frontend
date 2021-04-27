@@ -143,6 +143,8 @@ const UserPanel = (props) => {
 console.log("props.userPanelChatOnline, props.authUserId","triggered tryReconnect");
       props.wsLink.subscriptionClient.url = `${config.graphql_subscription_domain}:${config.port}/${config.graphql_subscription_endpoint}?userId=${props.authUserId}`;
       props.wsLink.subscriptionClient.tryReconnect();
+      //wsLink.subscriptionClient.maxConnectTimeGenerator.duration = () =>
+     // wsLink.subscriptionClient.maxConnectTimeGenerator.max;
       props.setUserpanelWsSubscriptionReady(true);
     } else {
       console.log("props.userPanelChatOnline, props.authUserId","triggered close");
