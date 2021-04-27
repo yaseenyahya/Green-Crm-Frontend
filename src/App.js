@@ -48,6 +48,7 @@ function App() {
    
     options: {
       timeout: 60000,
+      minTimeout:600000,
       reconnect: true,
       lazy: true,
     },
