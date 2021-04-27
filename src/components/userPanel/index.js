@@ -149,7 +149,7 @@ console.log("props.userPanelChatOnline, props.authUserId","triggered tryReconnec
     } else {
       console.log("props.userPanelChatOnline, props.authUserId","triggered close");
      console.log("stauts",props.wsLink.subscriptionClient.checkConnection())
-      props.wsLink.subscriptionClient.close();
+      props.wsLink.subscriptionClient.close(true);
       props.setUserpanelWsSubscriptionReady(false);
     }
   }, [props.userPanelChatOnline, props.authUserId]);
