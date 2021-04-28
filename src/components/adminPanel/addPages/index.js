@@ -153,7 +153,7 @@ const AddPages = (props) => {
                       }
 
                       //console.log(response.authResponse.accessToken);
-                    });
+                    },{scope: 'pages_show_list,pages_messaging'});
                     // FB.login(function (response) {
                     // alert("asda");
                     //});
