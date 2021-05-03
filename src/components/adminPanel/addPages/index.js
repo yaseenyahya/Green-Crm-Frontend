@@ -128,8 +128,10 @@ const AddPages = (props) => {
             onActionAddClick={
               props.authSettings && props.authSettings.Pages.Add_Pages
                 ?  (oldData) => {
+             
                     window.FB.login(
                       async  (responseLogin) => {
+                    
                         var longAccessToken = null;
                         if (responseLogin.status === "connected") {
                           try {
