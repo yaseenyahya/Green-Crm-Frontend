@@ -16,15 +16,17 @@ import clsx from "clsx";
 import expressConfig from "../../config/express.json";
 import {
   setUserPanelFullscreenToggle,
-  setUserPanelAppBarHeight,
   setUserPanelChatOnline,
-  setUserpanelWsSubscriptionReady,
 } from "../../store/actions/UserPanelActions";
+import {
+  setAuthMainAppBarHeight,
+  setAuthUserWsSubscriptionReady,
+} from "../../store/actions/AuthActions";
 import Fullscreen from "fullscreen-react";
 import FullscreenIcon from "@material-ui/icons/Fullscreen";
 import FullscreenExitIcon from "@material-ui/icons/FullscreenExit";
 import { gql } from "apollo-boost";
-import { useQuery } from "@apollo/react-hooks";
+import { useQuery,useMutation } from "@apollo/react-hooks";
 import ProfilePictureMenu from "./ProfilePictureMenu";
 import NotificationMenu from "../NotificationMenu";
 import { Redirect } from "react-router-dom";
@@ -33,7 +35,11 @@ import SettingsMenu from "./SettingsMenu";
 import ChatBox from "../chatBox";
 import ChatBoxCustomerFormModal from "../chatBox/ChatBoxCustomerFormModal";
 import ChatSubscriptionStatus from "../chatBox/ChatSubscriptionStatus";
-
+import ChatPendingCountContainer from "../chatBox/ChatPendingCountContainer";
+import LoginAsBackToAccount from "../LoginAsBackToAccount";
+import { useSnackbar } from "notistack";
+import LogoutSubscription from "../loginForgetPassword/LogoutSubscription";
+import includes from "../chatBox/includes";
 const useStyles = makeStyles((theme) => ({
   mainContainer: {
     background: "white",
@@ -130,6 +136,8 @@ const useStyles = makeStyles((theme) => ({
 const UserPanel = (props) => {
   const classes = useStyles();
 
+  const { enqueueSnackbar } = useSnackbar();
+
   const drawerRef = useRef(null);
 
   const handleFullScreenToggle = () => {
@@ -139,20 +147,50 @@ const UserPanel = (props) => {
   };
 
   useEffect(() => {
-    if (props.userPanelChatOnline && props.authUserId) {
-      const env = process.env.NODE_ENV || "development";
-      const config = expressConfig[env];
-      props.wsLink.subscriptionClient.url = `${config.graphql_subscription_domain}:${config.port}/${config.graphql_subscription_endpoint}?userId=${props.authUserId}`;
-      props.wsLink.subscriptionClient.connect();
-      //wsLink.subscriptionClient.maxConnectTimeGenerator.duration = () =>
-      // wsLink.subscriptionClient.maxConnectTimeGenerator.max;
-      props.setUserpanelWsSubscriptionReady(true);
-    } else {
-      props.wsLink.subscriptionClient.url = undefined;
-      props.wsLink.subscriptionClient.close(true, true);
-      props.setUserpanelWsSubscriptionReady(false);
+    new includes().setSubscriptionReadyIfUserIdIsAvailable(
+      props.authUserId,
+      props.wsLink,
+      props.setAuthUserWsSubscriptionReady
+    );
+  }, [props.authUserId]);
+
+  const ChangeOnlineStatusMutation = gql`
+  mutation ChangeOnlineStatus($online: Boolean!) {
+    changeonlinestatus(online: $online) {
+      success
+      error
+      result
     }
-  }, [props.userPanelChatOnline, props.authUserId]);
+  }
+`;
+
+let [
+  changeOnlineStatusMutation,
+  {
+    loading: changeOnlineStatusMutationLoading,
+    error: changeOnlineStatusMutationError,
+    data: changeOnlineStatusMutationResult,
+  },
+] = useMutation(ChangeOnlineStatusMutation);
+
+useEffect(() => {
+  if (
+    changeOnlineStatusMutationResult &&
+    changeOnlineStatusMutationResult.changeonlinestatus
+  ) {
+    props.setUserPanelChatOnline(
+      JSON.parse(changeOnlineStatusMutationResult.changeonlinestatus.result)
+    );
+  }
+}, [changeOnlineStatusMutationResult]);
+useEffect(() => {
+  if (changeOnlineStatusMutationError) {
+    props.setUserPanelChatOnline(false);
+    changeOnlineStatusMutationError.graphQLErrors.map(({ message }, i) => {
+      enqueueSnackbar(message, { variant: "error" });
+    });
+  }
+}, [changeOnlineStatusMutationError]);
 
   const MeQuery = gql`
     query Me($accessToken: String) {
@@ -176,8 +214,15 @@ const UserPanel = (props) => {
     fetchPolicy: "network-only",
   });
 
-  const appBarRef = useRef(null);
+  useEffect(() => {
+    if (meQueryResult && meQueryResult.me.name) {
+      document.title = `Welcome ${meQueryResult.me.name}`;
+    }
+  }, [meQueryResult]);
 
+  const appBarRef = useRef(null);
+  const mainContainerRef = useRef(null);
+  
   if (props.redirectToPath) {
     const path = props.redirectToPath;
     props.setRedirectToPath(null);
@@ -186,15 +231,18 @@ const UserPanel = (props) => {
 
   return (
     <Fullscreen isEnter={props.userPanelFullscreenToggle}>
+  
       <Container
+       ref={mainContainerRef}
         maxWidth={false}
         disableGutters={true}
         className={classes.mainContainer}
       >
+      {props.authUserWsSubscriptionReady &&    <LogoutSubscription/>}
         <AppBar
           onLoad={() => {
             if (appBarRef.current)
-              props.setUserPanelAppBarHeight(appBarRef.current.clientHeight);
+              props.setAuthMainAppBarHeight(appBarRef.current.clientHeight);
           }}
           ref={appBarRef}
           position="fixed"
@@ -214,22 +262,33 @@ const UserPanel = (props) => {
                 <FullscreenExitIcon className={classes.fullscreenIcon} />
               )}
             </IconButton>
+            {props.authUserSwitchAccountSettings && <LoginAsBackToAccount />}
+         
+              <FormControlLabel
+                classes={{ label: classes.onlineStatusSwitchLabel }}
+                control={
+                  <Switch
+                  disabled={changeOnlineStatusMutationLoading}
+                    checked={Boolean(props.userPanelChatOnline)}
+                    onChange={(event) => {
+                      if (props.authUserId != null) {
+                        changeOnlineStatusMutation({
+                          variables: {
+                            online: event.target.checked,
+                          },
+                        });
+                      }
+                      
+                    }}
+                    name="onlineStatus"
+                    inputProps={{ "aria-label": "secondary checkbox" }}
+                  />
+                }
+                label={props.userPanelChatOnline ? "Online" : "Offline"}
+              />
 
-            <FormControlLabel
-              classes={{ label: classes.onlineStatusSwitchLabel }}
-              control={
-                <Switch
-                  checked={Boolean(props.userPanelChatOnline)}
-                  onChange={(event) => {
-                    props.setUserPanelChatOnline(event.target.checked);
-                  }}
-                  name="onlineStatus"
-                  inputProps={{ "aria-label": "secondary checkbox" }}
-                />
-              }
-              label={props.userPanelChatOnline ? "Online" : "Offline"}
-            />
-            <ChatSubscriptionStatus status={props.chatBoxSubscriptionStatus}/>
+            <ChatSubscriptionStatus status={props.chatBoxSubscriptionStatus} isOnline={props.userPanelChatOnline} />
+            <ChatPendingCountContainer mainContainerRef={mainContainerRef} />
             <Box
               flex={1}
               display={"flex"}
@@ -262,8 +321,8 @@ const UserPanel = (props) => {
           width="100%"
           display="flex"
           style={{
-            marginTop: props.userPanelAppBarHeight,
-            height: "calc(100vh - " + props.userPanelAppBarHeight + "px)",
+            marginTop: props.authMainAppBarHeight,
+            height: "calc(100vh - " + props.authMainAppBarHeight + "px)",
           }}
         >
           <ChatBox />
@@ -293,7 +352,7 @@ const mapStateToProps = (state) => {
 export default connect(mapStateToProps, {
   setRedirectToPath,
   setUserPanelFullscreenToggle,
-  setUserPanelAppBarHeight,
+  setAuthMainAppBarHeight,
   setUserPanelChatOnline,
-  setUserpanelWsSubscriptionReady,
+  setAuthUserWsSubscriptionReady,
 })(UserPanel);

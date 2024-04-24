@@ -21,7 +21,6 @@ const FacebookTypography = (props) => {
 
   const getData = () => {
     includesObj.resolvePageInfo(
-      window.FB,
       item.pageId,
       props.chatBoxFacebookIDsWithProfileDetails,
       props.setChatBoxFacebookIDsWithProfileDetails,
@@ -30,7 +29,6 @@ const FacebookTypography = (props) => {
     );
 
     includesObj.resolveClientInfo(
-      window.FB,
       item.customerId,
       item.pageId,
       props.chatBoxFacebookIDsWithProfileDetails,

@@ -47,6 +47,7 @@ const AddProfiles = (props) => {
   });
 
   useEffect(() => {
+    document.title = "Add/Edit Profiles";
     getProfiles();
   }, []);
 

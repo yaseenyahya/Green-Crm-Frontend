@@ -55,6 +55,7 @@ const AddDesignations = (props) => {
   });
 
   useEffect(() => {
+    document.title = "Add/Edit Designations";
     getDesignations();
   }, []);
 

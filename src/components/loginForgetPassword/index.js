@@ -12,7 +12,16 @@ import LoginForm from "./LoginForm";
 import ForgetPasswordForm from "./ForgetPasswordForm";
 import ResetPasswordForm from "./ResetPasswordForm";
 import { setRedirectToPath } from "../../store/actions/RedirectToPathActions";
-
+import { setForceLogoutUser } from "../../store/actions/LoginForgetPasswordActions";
+import {
+  setDialogOpen,
+  setDialogOkText,
+  setDialogCancelText,
+  setDialogOkClick,
+  setDialogTitle,
+  setDialogContent,
+} from "../../store/actions/DialogActions";
+import CustomDialogRedux from "../CustomDialogRedux";
 const useStyles = makeStyles((theme) => ({
   mainContainer: {
     background: "#2e3e4e",
@@ -47,6 +56,19 @@ const LoginForgetPassword = (props) => {
     else document.title = props.titleForgetPassword;
   }, [props.loginForgetPasswordToggleFormName]);
 
+  useEffect(() => {
+    if(props.forceLogoutUser){
+    props.setDialogOpen(true);
+    props.setDialogOkText("ok");
+    props.setDialogCancelText(null);
+    props.setDialogOkClick(() => {
+      window.location = "/user";
+    });
+    props.setDialogTitle("Warning");
+    props.setDialogContent("You are logout by " + props.forceLogoutUser);
+    }
+  }, [props.forceLogoutUser]);
+
   if (props.redirectToPath) {
     const path = props.redirectToPath;
     props.setRedirectToPath(null);
@@ -64,6 +86,8 @@ const LoginForgetPassword = (props) => {
     ></img>
   );
 
+  
+
   const loginForgetPasswordToggleFormName =
     props.match.path == "/resetpassword/:token"
       ? "resetpassword"
@@ -74,6 +98,7 @@ const LoginForgetPassword = (props) => {
       maxWidth={false}
       className={clsx(classes.mainContainer, classes.fullHeight)}
     >
+     <CustomDialogRedux />
       <Container disableGutters={true}>
         <Grid
           direction={isScreenExtraSmall || isScreenSmall ? "column" : "row"}
@@ -112,6 +137,13 @@ const mapStateToProps = (state) => {
     ...state.RedirectToPathReducer,
   };
 };
-export default connect(mapStateToProps, { setRedirectToPath })(
-  LoginForgetPassword
-);
+export default connect(mapStateToProps, {
+  setRedirectToPath,
+  setForceLogoutUser,
+  setDialogOpen,
+  setDialogOkText,
+  setDialogCancelText,
+  setDialogOkClick,
+  setDialogTitle,
+  setDialogContent,
+})(LoginForgetPassword);

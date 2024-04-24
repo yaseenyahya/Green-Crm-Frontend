@@ -123,12 +123,14 @@ const ValidationTextField = (props, ref) => {
       helperText={error}
       autoComplete={"off"}
       InputProps={{
+       
         inputComponent: props.mask ? TextMaskCustom : undefined,
         inputProps: {
           mask: props.mask,
           placeHolderVisible: props.placeHolderVisible,
           onInput: props.onInput,
           placeHolderVisiblePlaceHolder: props.placeHolderVisiblePlaceHolder,
+          min: props.min,
         },
         classes: {
           ...props.InputProps.classes,
@@ -148,7 +150,7 @@ const TextMaskCustom = (props) => {
     <MaskInput
       {...other}
       ref={(ref) => {
-        alert(ref);
+      
         inputRef(ref ? ref.inputElement : null);
       }}
       onChange={(e) => {

@@ -5,9 +5,9 @@ import {
   ADMIN_PANEL_NOTIFICATION_COUNT,
   ADMIN_PANEL_CHAT_ONLINE,
   ADMIN_PANEL_FULLSCREEN_TOGGLE,
-  ADMIN_PANEL_APPBAR_HEIGHT,
   ADMIN_PANEL_PROFILE_PIC_MENU_ANCHOR_EL,
-  ADMIN_PANEL_SETTINGS_MENU_ANCHOR_EL
+  ADMIN_PANEL_SETTINGS_MENU_ANCHOR_EL,
+  ADMIN_PANEL_CHAT_BOX_DRAWER_TOGGLE
  
 } from "../ActionTypes";
 import {LocalStorage} from "../../auth/LocalStorage";
@@ -21,10 +21,10 @@ export const AdminPanelReducer = (
     adminPanelNotificationCount: 0,
     adminPanelChatOnline: LocalStorage.getAdminPanelChatOnline(),
     adminPanelFullscreenToggle: false,
-    adminPanelAppBarHeight: 64,
     adminPanelProfilePicMenuAnchorEl: null,
     adminPanelSettingsMenuAnchorEl:null,
-    adminPanelDrawerWidth:240
+    adminPanelDrawerWidth:240,
+    adminPanelChatBoxDrawerToggle:false
   },
   action
 ) => {
@@ -53,10 +53,6 @@ export const AdminPanelReducer = (
       return Object.assign({}, state, {
         adminPanelFullscreenToggle: action.payload.adminPanelFullscreenToggle,
       });
-    case ADMIN_PANEL_APPBAR_HEIGHT:
-      return Object.assign({}, state, {
-        adminPanelAppBarHeight: action.payload.adminPanelAppBarHeight,
-      });
       case ADMIN_PANEL_SETTINGS_MENU_ANCHOR_EL:
         return Object.assign({}, state, {
           adminPanelSettingsMenuAnchorEl: action.payload.adminPanelSettingsMenuAnchorEl,
@@ -66,6 +62,11 @@ export const AdminPanelReducer = (
         adminPanelProfilePicMenuAnchorEl:
           action.payload.adminPanelProfilePicMenuAnchorEl,
       });
+      case ADMIN_PANEL_CHAT_BOX_DRAWER_TOGGLE:
+        return Object.assign({}, state, {
+          adminPanelChatBoxDrawerToggle:
+            action.payload.adminPanelChatBoxDrawerToggle,
+        });
       
     default:
       return state;

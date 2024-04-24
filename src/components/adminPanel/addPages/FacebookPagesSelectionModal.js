@@ -65,6 +65,19 @@ const useStyles = makeStyles((theme) => ({
     minWidth: 300,
     minHeight: 200,
   },
+  facebookPageImg: {
+    width: 50,
+    height: 50,
+    marginTop: 3,
+    marginBottom: 5,
+    borderRadius: "50%",
+  },
+  facebookPageName: {
+    marginLeft: 20,
+    display: "flex",
+    alignItems: "center",
+    fontSize: 20,
+  },
 }));
 
 const FacebookPagesSelectionModal = (props) => {
@@ -170,6 +183,8 @@ const FacebookPagesSelectionModal = (props) => {
             props.addEditPagesModalPages.map((item) => {
               return (
                 <FacebookList
+                facebookPageImgClass={classes.facebookPageImg}
+                facebookPageNameClass={classes.facebookPageName}
                   isChecked={Boolean(item.isChecked)}
                   onChange={(checked, id) => {
                     const pageObject = _.find(

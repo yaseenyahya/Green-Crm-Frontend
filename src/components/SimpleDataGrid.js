@@ -17,6 +17,7 @@ import Save from "@material-ui/icons/Save";
 import Search from "@material-ui/icons/Search";
 import ViewColumn from "@material-ui/icons/ViewColumn";
 import { makeStyles } from "@material-ui/core/styles";
+import { Button } from "@material-ui/core";
 
 
 const useStyles = makeStyles((theme) => ({
@@ -131,6 +132,7 @@ export const SimpleDataGrid = (props) => {
           actions: "",
         },
         body: {
+          
           editTooltip: props.editTooltip,
           deleteTooltip: props.deleteTooltip,
           addTooltip: props.addTooltip,
@@ -154,12 +156,14 @@ export const SimpleDataGrid = (props) => {
             
             }
           : null,
+         
       ]}
       
       options={{
+        pageSize:props.data && props.data.length > 6 ? Math.round(props.data.length / 2) : 6,
         exportFileName: props.exportFileName,
         search: true,
-        exportButton: true,
+        exportButton: props.disableExport ? false: true,
 
         actionsCellStyle: actionCellStyle,
         rowStyle: (rowData, i) => ({
@@ -174,9 +178,10 @@ export const SimpleDataGrid = (props) => {
         cellStyle: cellStyle,
         headerStyle: headerStyle,
       }}
-      title={<span className={classes.titleSpan}>{props.title}</span>}
+      title= {props.title ? <span className={classes.titleSpan}>{props.title}</span> : null}
       columns={props.columns}
       components={{
+        
         Toolbar: props => (
           <div>
             <MTableToolbar  {...props} classes={{

@@ -15,6 +15,10 @@ import { ChatBoxReducer } from "./ChatBoxReducer";
 import { FollowUpDialogReducer } from "./FollowUpDialogReducer";
 import { LabelListReducer } from "./LabelListReducer";
 import { NotificationMenuReducer } from "./NotificationMenuReducer";
+import { LoginAsModalReducer } from "./LoginAsModalReducer";
+import { UsersListReducer } from "./UsersListReducer";
+import { ManagersListReducer } from "./ManagersListReducer";
+
 const rootReducer = combineReducers({
   LoginForgetPasswordReducer,
   DialogReducer,
@@ -31,7 +35,10 @@ const rootReducer = combineReducers({
   ChatBoxReducer,
   FollowUpDialogReducer,
   LabelListReducer,
-  NotificationMenuReducer
+  NotificationMenuReducer,
+  LoginAsModalReducer,
+  UsersListReducer,
+  ManagersListReducer
 });
 
 export default rootReducer;

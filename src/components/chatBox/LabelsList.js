@@ -20,14 +20,16 @@ import AddAlertIcon from "@material-ui/icons/AddAlert";
 import { useSnackbar } from "notistack";
 import {
   setLabelListData,
-  setLabelListTextInput
- } from "../../store/actions/LabelListActions";
- import { connect } from "react-redux";
+  setLabelListTextInput,
+} from "../../store/actions/LabelListActions";
+import { connect } from "react-redux";
+import BackspaceIcon from "@material-ui/icons/Backspace";
 const useStyles = makeStyles((theme) => ({
   mainContainerRoot: {
     padding: 2,
     border: "1px solid #bab9b9",
     borderRadius: 0,
+    minHeight: 100,
   },
   listItemButton: {
     borderBottom: "1px solid #d0cfcf",
@@ -39,15 +41,14 @@ const useStyles = makeStyles((theme) => ({
     marginTop: 20,
   },
   listItemButtonText: {
-    padding: 5,
+    padding: 15,
     border: "1p solid gray",
     color: "black",
     flex: 1,
   },
   listItem: {
- 
-
     background: "white",
+    padding: 0,
   },
   labelAddForm: {
     margin: 10,
@@ -60,19 +61,29 @@ const useStyles = makeStyles((theme) => ({
     "&:hover": {
       background: "#e14079",
     },
-    marginLeft: 10,
+    marginLeft: 6,
   },
   labelTextInput: {
-    padding: 14,
+    paddingTop: 9,
+    paddingBottom: 9,
   },
   labelAddFormButtonIcon: {
-    fontSize: 30,
+    fontSize: 25,
   },
   deleteButton: {
     color: "#f40057",
+    background: "gray",
+    background: "#e0dfdf",
+    "&:hover": {
+      background: "#dcdcdc",
+    },
   },
   followUpIcon: {
     marginRight: 12,
+  },
+  closeLabelIcon: {
+    marginRight: 12,
+    color: "red",
   },
 }));
 
@@ -116,8 +127,8 @@ const LabelsList = (props) => {
   }, [updateLabelsQueryResult]);
 
   const LabelsQuery = gql`
-    query Me($accessToken: String) {
-      me(accessToken: $accessToken) {
+    query GetLabels($accessToken: String) {
+      getlabels(accessToken: $accessToken) {
         id
         labels
       }
@@ -133,56 +144,88 @@ const LabelsList = (props) => {
   ] = useLazyQuery(LabelsQuery, {
     fetchPolicy: "network-only",
   });
+  useEffect(() => {
+    if (labelsQueryError) {
+      labelsQueryError.graphQLErrors.map(({ message }, i) => {
+        enqueueSnackbar(message, { variant: "error" });
+      });
+    }
+  }, [labelsQueryError]);
 
   useEffect(() => {
     getLabels();
   }, []);
 
+  var followUpText =  "Follow Up"; 
+  var closeText =  "Close";
+
   useEffect(() => {
-    if (labelsQueryResult && labelsQueryResult.me) {
-      var listData_ = [{ id: 0, text: "Follow Up" }];
-      var decodeResult = JSON.parse(labelsQueryResult.me.labels);
+    if (labelsQueryResult && labelsQueryResult.getlabels) {
+      var listData_ = [{ id: 0, text: followUpText }];
+      if (!props.marknottoaddinchatcircle) {
+  
+        listData_.push({ id: 1, text: closeText });
+      }
+
+      var decodeResult = JSON.parse(labelsQueryResult.getlabels.labels);
 
       decodeResult &&
         decodeResult.map((item) => {
           listData_.push(item);
         });
 
-        props.setLabelListData(_.cloneDeep(listData_));
+
+      props.setLabelListData(_.cloneDeep(listData_));
     }
   }, [labelsQueryResult]);
 
-
   const isLoading = labelsQueryLoading;
+
+  var labelListDataSearch = [];
+  if (!isLoading) {
+    if (props.labelListTextInput != "") {
+      labelListDataSearch = _.filter(props.labelListData, (label) => {
+        if (!_.find(props.usedLabels, (label_) => label.text == label_.text))
+          return label.text
+            .toLowerCase()
+            .includes(props.labelListTextInput.toLowerCase());
+      });
+    }
+  }
 
   useEffect(() => {
     props.update();
-  }, [props.labelListData]);
+  }, [labelListDataSearch]);
 
   const addItem = () => {
+    if (!isLoading) {
     var id = props.labelListData[props.labelListData.length - 1].id + 1;
+    if(id == 1){ //because it is close id
+      id++;
+    }
     var text = props.labelListTextInput;
     var listData_ = _.cloneDeep(props.labelListData);
-    if (text != "") {
-      var alreadyExist = _.find(listData_, (itm) => itm.text == text);
+
+
+    if (text != "" && text.toLowerCase() != followUpText.toLowerCase() && text.toLowerCase() != closeText.toLowerCase()) {
+      var alreadyExist = _.find(listData_, (itm) => itm.text.toLowerCase() == text.toLowerCase());
+
       if (!alreadyExist) {
+      
         listData_.push({ id: id, text: text });
         props.setLabelListData(_.cloneDeep(listData_));
-        props.setLabelListTextInput("");
       } else {
-        props.setLabelListTextInput("");
       }
-      _.remove(listData_, (itm) => itm.id == 0);
+      _.remove(listData_, (itm) => itm.id == 0 || itm.id == 1);
       updateLabels({
         variables: {
           labels: JSON.stringify(listData_),
         },
       });
     }
+    }
   };
-  return props.isLoading ? (
-    <CircularProgress className={classes.loadingCircularProgress} size={24} />
-  ) : (
+  return (
     <Container
       classes={{
         root: classes.mainContainerRoot,
@@ -204,9 +247,10 @@ const LabelsList = (props) => {
           onInput={(e) => props.setLabelListTextInput(e.target.value)}
           autoFocus
           variant={"outlined"}
-          placeholder={"Label Text"}
+          placeholder={"Search or add label"}
         />
         <Button
+          disabled={isLoading}
           onClick={() => {
             addItem();
           }}
@@ -215,57 +259,83 @@ const LabelsList = (props) => {
           <AddIcon className={classes.labelAddFormButtonIcon} />
         </Button>
       </Container>
-      <List style={{ height: props.containerHeight }}>
-        {props.labelListData.map((item) => {
-          return (
-            <ListItem
-              classes={{
-                root: classes.listItem,
-              }}
-             
-              button
-              className={classes.listItemButton}
-            >
-              <Typography  onClick={(e) => {
-                props.onItemClick && props.onItemClick(item);
-              }} className={classes.listItemButtonText}>
-                {item.text}
-              </Typography>
-              {item.id != 0 ? (
-                <IconButton
-                  className={classes.deleteButton}
-                  onClick={() => {
-                    var listData_ = props.labelListData;
-                    _.remove(listData_, (itm) => itm.id == item.id);
-                    props.setLabelListData(_.cloneDeep(listData_));
-
-                    _.remove(listData_, (itm) => itm.id == 0);
-                    updateLabels({
-                      variables: {
-                        labels: JSON.stringify(listData_),
-                      },
-                    });
+      {isLoading ? (
+        <CircularProgress
+          className={classes.loadingCircularProgress}
+          size={24}
+        />
+      ) : (
+        <List style={{ height: props.containerHeight }}>
+          {labelListDataSearch.map((item) => {
+            return (
+              <ListItem
+                classes={{
+                  root: classes.listItem,
+                }}
+                button
+                className={classes.listItemButton}
+              >
+                <Typography
+                  onClick={(e) => {
+                    if (item.id != 0) {
+                      var listData_ = props.labelListData;
+                      _.remove(listData_, (itm) => itm.id == item.id);
+                      props.setLabelListData(_.cloneDeep(listData_));
+                    }
+                    props.onItemClick && props.onItemClick(item);
                   }}
+                  className={classes.listItemButtonText}
                 >
-                  <DeleteForeverIcon />
-                </IconButton>
-              ) : (
-                <AddAlertIcon className={classes.followUpIcon} />
-              )}
-            </ListItem>
-          );
-        })}
-      </List>
+                  {item.text}
+                </Typography>
+                {item.id != 0 && item.id != 1 ? (
+                  <IconButton
+                    className={classes.deleteButton}
+                    onClick={() => {
+                      var listData_ = props.labelListData;
+                      _.remove(listData_, (itm) => itm.id == item.id);
+                      props.setLabelListData(_.cloneDeep(listData_));
+
+                      _.remove(listData_, (itm) => itm.id == 0 ||  itm.id == 1);
+                      updateLabels({
+                        variables: {
+                          labels: JSON.stringify(listData_),
+                        },
+                      });
+                    }}
+                  >
+                    <DeleteForeverIcon />
+                  </IconButton>
+                ) : item.id == 0 ? (
+                  <AddAlertIcon
+                    className={classes.followUpIcon}
+                    onClick={() => {
+                      props.onItemClick && props.onItemClick(item);
+                    }}
+                  />
+                ) : (
+                  <BackspaceIcon
+                    className={classes.closeLabelIcon}
+                    onClick={() => {
+                      props.onItemClick && props.onItemClick(item);
+                    }}
+                  />
+                )}
+              </ListItem>
+            );
+          })}
+        </List>
+      )}
     </Container>
   );
 };
 const mapStateToProps = (state) => {
   return {
-    ...state.LabelListReducer 
+    ...state.LabelListReducer,
   };
 };
 
 export default connect(mapStateToProps, {
   setLabelListData,
-  setLabelListTextInput
-})(LabelsList);;
+  setLabelListTextInput,
+})(LabelsList);

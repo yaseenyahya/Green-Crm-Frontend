@@ -13,7 +13,7 @@ import {
 import { useSnackbar } from "notistack";
 import FacebookPagesSelectionModal from "./FacebookPagesSelectionModal";
 import _ from "lodash";
-import { Facebook } from "../../../auth/Facebook";
+
 import expressConfig from "../../../config/express.json";
 import axios from "axios";
 const useStyles = makeStyles((theme) => ({
@@ -26,6 +26,7 @@ const useStyles = makeStyles((theme) => ({
   facebookMainButton: {
     display: "none",
   },
+  
 }));
 
 const AddPages = (props) => {
@@ -54,6 +55,7 @@ const AddPages = (props) => {
   });
 
   useEffect(() => {
+    document.title = "Add/Edit Pages";
     getPages();
   }, []);
 
@@ -80,9 +82,7 @@ const AddPages = (props) => {
 
     { title: "AccessToken", field: "accesstoken" },
   ];
-  useEffect(() => {
-    Facebook.fbInt();
-  }, []);
+  
   const env = process.env.NODE_ENV || "development";
   const config = expressConfig[env];
   return (
@@ -128,62 +128,69 @@ const AddPages = (props) => {
             onActionAddClick={
               props.authSettings && props.authSettings.Pages.Add_Pages
                 ?  (oldData) => {
-             
+                
+       
                     window.FB.login(
-                      async  (responseLogin) => {
-                    
+                        (responseLogin) => {
+          
                         var longAccessToken = null;
                         if (responseLogin.status === "connected") {
-                          try {
-                          const response = await axios
+                          axios
                             .get(
-                        
                               `https://graph.facebook.com/oauth/access_token?  
                               grant_type=fb_exchange_token&          
                               client_id=${config.facebook_app_id}&
                               client_secret=${config.facebook_app_secret}&
                               fb_exchange_token=${responseLogin.authResponse.accessToken}`
-                              )
-                              console.log("Long Live Access Token");
+                            )
+                            .then((response) => {
                               longAccessToken = response.data.access_token;
-                            } catch (error) {
-                              console.log("long lived token error ",error)
-                            }
-                            
-                     if(longAccessToken){
-                       
-                          window.FB.api(
-                            `/${responseLogin.authResponse.userID}/accounts?access_token=${longAccessToken}`,
-                            (responseAccount) => {
-                              console.log(responseAccount);
-                              if (responseAccount && !responseAccount.error) {
-                                var filterData = responseAccount.data;
-                                console.log("pages_result", filterData);
-                                getPagesQueryResult.pages.map((item) => {
-                                  filterData = _.filter(
-                                    filterData,
-                                    (responseData) =>
-                                      responseData.id != item.pageId
-                                  );
-                                });
 
-                                props.setaddEditPagesModalPages(filterData);
-                                props.setAddEditPagesModalToggle(true);
-                              } else if (
-                                responseAccount &&
-                                responseAccount.error
-                              ) {
-                                enqueueSnackbar(responseAccount.error.message, {
-                                  variant: "error",
-                                });
+                              if (longAccessToken) {
+                                window.FB.api(
+                                  `/${responseLogin.authResponse.userID}/accounts?access_token=${longAccessToken}`,
+                                  (responseAccount) => {
+                                    console.log(responseAccount);
+                                    if (
+                                      responseAccount &&
+                                      !responseAccount.error
+                                    ) {
+                                      var filterData = responseAccount.data;
+                                      console.log("pages_result", filterData);
+                                      getPagesQueryResult.pages.map((item) => {
+                                        filterData = _.filter(
+                                          filterData,
+                                          (responseData) =>
+                                            responseData.id != item.pageId
+                                        );
+                                      });
+
+                                      props.setaddEditPagesModalPages(
+                                        filterData
+                                      );
+                                      props.setAddEditPagesModalToggle(true);
+                                    } else if (
+                                      responseAccount &&
+                                      responseAccount.error
+                                    ) {
+                                      enqueueSnackbar(
+                                        responseAccount.error.message,
+                                        {
+                                          variant: "error",
+                                        }
+                                      );
+                                    }
+                                  }
+                                );
                               }
-                            }
-                          );
+                            })
+                            .catch((error) => {
+                              console.log("long lived token error ", error);
+                            });
                         }
-                      }
                         //console.log(response.authResponse.accessToken);
                       },
-                      { scope: "pages_show_list,pages_messaging" }
+                      { scope: "pages_show_list,pages_messaging" },{ auth_type: 'reauthenticate' }
                     );
                     // FB.login(function (response) {
                     // alert("asda");

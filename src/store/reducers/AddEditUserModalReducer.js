@@ -13,7 +13,12 @@ import {
   ADD_EDIT_USER_MODAL_PASSWORD,
   ADD_EDIT_USER_MODAL_NUMBER,
   ADD_EDIT_USER_MODAL_RESET,
-  ADD_EDIT_USER_MODAL_SETTINGS
+  ADD_EDIT_USER_MODAL_SETTINGS,
+  ADD_EDIT_USER_MODAL_MANAGER_FIELD_TOGGLE,
+  ADD_EDIT_USER_MODAL_FACEBOOK_PAGES_FIELD_TOGGLE,
+  ADD_EDIT_USER_MODAL_FACEBOOK_PAGES,
+  ADD_EDIT_USER_MODAL_AGENT_LIMIT_CHATS_ASSIGN_FIELD_TOGGLE,
+  ADD_EDIT_USER_MODAL_AGENT_LIMIT_CHATS_ASSIGN
 } from "../ActionTypes";
 
 export const AddEditUserModalReducer = (
@@ -32,8 +37,13 @@ export const AddEditUserModalReducer = (
     addEditUserModalComments: "",
     addEditUserModalNumber: "",
     addEditUserModalSettings: "",
+    addEditUserModalManagerFieldToggle: false,
+    addEditUserModalFacebookPagesFieldToggle: false,
+    addEditUserModalFacebookPages: null,
+    addEditUserModalAgentLimitChatsAssignFieldToggle:false,
+    addEditUserModalAgentLimitChatsAssign:""
   },
-  
+
   action
 ) => {
   switch (action.type) {
@@ -90,11 +100,35 @@ export const AddEditUserModalReducer = (
       return Object.assign({}, state, {
         addEditUserModalNumber: action.payload.addEditUserModalNumber,
       });
-      case ADD_EDIT_USER_MODAL_SETTINGS:
+    case ADD_EDIT_USER_MODAL_SETTINGS:
+      return Object.assign({}, state, {
+        addEditUserModalSettings: action.payload.addEditUserModalSettings,
+      });
+    case ADD_EDIT_USER_MODAL_MANAGER_FIELD_TOGGLE:
+      return Object.assign({}, state, {
+        addEditUserModalManagerFieldToggle:
+          action.payload.addEditUserModalManagerFieldToggle,
+      });
+    case ADD_EDIT_USER_MODAL_FACEBOOK_PAGES_FIELD_TOGGLE:
+      return Object.assign({}, state, {
+        addEditUserModalFacebookPagesFieldToggle:
+          action.payload.addEditUserModalFacebookPagesFieldToggle,
+      });
+      case ADD_EDIT_USER_MODAL_FACEBOOK_PAGES:
         return Object.assign({}, state, {
-          addEditUserModalSettings: action.payload.addEditUserModalSettings,
+          addEditUserModalFacebookPages:
+            action.payload.addEditUserModalFacebookPages,
         });
-      
+      case ADD_EDIT_USER_MODAL_AGENT_LIMIT_CHATS_ASSIGN_FIELD_TOGGLE:
+        return Object.assign({}, state, {
+          addEditUserModalAgentLimitChatsAssignFieldToggle:
+            action.payload.addEditUserModalAgentLimitChatsAssignFieldToggle,
+        });
+        case ADD_EDIT_USER_MODAL_AGENT_LIMIT_CHATS_ASSIGN:
+          return Object.assign({}, state, {
+            addEditUserModalAgentLimitChatsAssign:
+              action.payload.addEditUserModalAgentLimitChatsAssign,
+          });
     case ADD_EDIT_USER_MODAL_RESET:
       return Object.assign({}, state, {
         addEditUserModalToggle: false,
@@ -110,7 +144,12 @@ export const AddEditUserModalReducer = (
         addEditUserModalStatus: null,
         addEditUserModalComments: "",
         addEditUserModalNumber: "",
-        addEditUserModalSettings:""
+        addEditUserModalSettings: "",
+        addEditUserModalManagerFieldToggle: false,
+        addEditUserModalFacebookPagesFieldToggle: false,
+        addEditUserModalFacebookPages:null,
+        addEditUserModalAgentLimitChatsAssignFieldToggle:false,
+        addEditUserModalAgentLimitChatsAssign:""
       });
     default:
       return state;

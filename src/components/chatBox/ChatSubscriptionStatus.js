@@ -21,7 +21,9 @@ const useStyles = makeStyles((theme) => ({
   backgroundDisconnected:{
     background: "#e14079",
   },
-
+  backgroundConnectedAndNotOnline:{
+    background: "#ff9800",
+  }
 }));
 
 const ChatSubscriptionStatus = (props) => {
@@ -31,6 +33,7 @@ const ChatSubscriptionStatus = (props) => {
     <Typography
       className={clsx(classes.statusContainer, {
         [classes.backgroundConnected]: props.status,
+        [classes.backgroundConnectedAndNotOnline] : !props.isOnline
       })}
     >
       <DoneIcon className={classes.statusText} /> Connected

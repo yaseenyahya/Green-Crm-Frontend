@@ -22,7 +22,6 @@ const FacebookAvatar = (props) => {
   const getData = () => {
     if (type == "page")
       includesObj.resolvePageInfo(
-        window.FB,
         item.pageId,
         props.chatBoxFacebookIDsWithProfileDetails,
         props.setChatBoxFacebookIDsWithProfileDetails,
@@ -31,7 +30,6 @@ const FacebookAvatar = (props) => {
       );
     else if (type == "customer") {
       includesObj.resolveClientInfo(
-        window.FB,
         item.customerId,
         item.pageId,
         props.chatBoxFacebookIDsWithProfileDetails,
@@ -42,7 +40,7 @@ const FacebookAvatar = (props) => {
     }
   };
   const setImageCallBack = (result) => {
-    console.log("facebookAvatar",result)
+   
     if(result)
     setSrc(result.image);
   };

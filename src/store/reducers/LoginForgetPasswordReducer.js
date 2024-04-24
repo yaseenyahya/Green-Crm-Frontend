@@ -11,6 +11,7 @@ import {
   RESET_PASSWORD_CHANGE_PASSWORD_TEXT,
   RESET_PASSWORD_CHANGE_CONFIRM_PASSWORD_TEXT,
   RESET_PASSWORD_CHANGE_SUCCESS,
+  FORCE_LOGOUT_USER
 } from "../ActionTypes";
 
 export const LoginForgetPasswordReducer = (
@@ -27,7 +28,7 @@ export const LoginForgetPasswordReducer = (
     resetPasswordChangePasswordText:"",
     resetPasswordChangeConfirmPasswordText:"",
     resetPasswordChangeSuccess:false,
-
+    forceLogoutUser:null
   },
   action
 ) => {
@@ -84,6 +85,11 @@ export const LoginForgetPasswordReducer = (
             return Object.assign({}, state, {
               resetPasswordChangeSuccess: action.payload.resetPasswordChangeSuccess,
             });
+            case FORCE_LOGOUT_USER:
+              return Object.assign({}, state, {
+                forceLogoutUser: action.payload.forceLogoutUser,
+              });
+
     default:
       return state;
   }

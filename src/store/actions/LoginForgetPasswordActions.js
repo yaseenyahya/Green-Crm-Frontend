@@ -11,6 +11,7 @@ import {
   RESET_PASSWORD_CHANGE_PASSWORD_TEXT,
   RESET_PASSWORD_CHANGE_CONFIRM_PASSWORD_TEXT,
   RESET_PASSWORD_CHANGE_SUCCESS,
+  FORCE_LOGOUT_USER
 } from "../ActionTypes";
 import {
   setDialogOpen,
@@ -126,6 +127,15 @@ export const setResetPasswordChangeSuccess = (resetPasswordChangeSuccess) => {
     type: RESET_PASSWORD_CHANGE_SUCCESS,
     payload: {
       resetPasswordChangeSuccess: resetPasswordChangeSuccess,
+    },
+  };
+};
+
+export const setForceLogoutUser = (forceLogoutUser) => {
+  return {
+    type: FORCE_LOGOUT_USER,
+    payload: {
+      forceLogoutUser: forceLogoutUser,
     },
   };
 };

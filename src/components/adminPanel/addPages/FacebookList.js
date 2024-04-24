@@ -7,19 +7,7 @@ const useStyles = makeStyles((theme) => ({
   mainContainer: {
     display: "flex",
   },
-  facebookPageImg: {
-    width: 50,
-    height: 50,
-    marginTop: 3,
-    marginBottom: 5,
-    borderRadius: "50%",
-  },
-  facebookPageName: {
-    marginLeft: 20,
-    display: "flex",
-    alignItems: "center",
-    fontSize: 20,
-  },
+ 
 }));
 const FacebookList = (props) => {
   const classes = useStyles();
@@ -43,14 +31,14 @@ const FacebookList = (props) => {
     <Container disableGutters={true} className={classes.mainContainer}>
       {props.checkBox && (
         <Checkbox
-      
+      checked={props.isChecked}
           onChange={(event) => {
             props.onChange(event.target.checked,props.facebookPageId);
           }}
         ></Checkbox>
       )}
-      <img className={classes.facebookPageImg} src={facebookPageImg}></img>
-      <Typography className={classes.facebookPageName}>
+      <img className={props.facebookPageImgClass} src={facebookPageImg}></img>
+      <Typography className={props.facebookPageNameClass}>
         {props.facebookPageName}
       </Typography>
     </Container>

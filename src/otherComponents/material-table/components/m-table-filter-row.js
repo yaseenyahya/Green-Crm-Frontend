@@ -44,7 +44,7 @@ class MTableFilterRow extends React.Component {
     "";
 
   LookupFilter = ({ columnDef }) => {
-    alert("asd")
+ 
     this.state = {
       selectedFilter: columnDef.tableData.filterValue || [],
     };

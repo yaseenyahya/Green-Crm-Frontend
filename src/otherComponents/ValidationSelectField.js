@@ -56,7 +56,7 @@ const ValidationSelectField = (props) => {
     props.onChange && props.onChange(e);
   }
 
- 
+  console.log("bish selected",value)
   return (
     <FormControl variant="outlined" className={classes.formControl}>
       <InputLabel htmlFor="native-simple">{props.label}</InputLabel>
@@ -64,7 +64,7 @@ const ValidationSelectField = (props) => {
 
         {...props}
         inputProps={{
-          id: "native-simple",
+          id: "native-simple" + props.label.split(' ').join('-'),
         }}
         value={value}
         onChange={handleChange}
@@ -72,6 +72,7 @@ const ValidationSelectField = (props) => {
       >
         <option aria-label="None" value="" />
         {props.values && props.values.map((values) => {
+           console.log("bish",values[0])
           return <MenuItem  value={values[0]} >{values[1]}</MenuItem>;
         })}
       </Select>

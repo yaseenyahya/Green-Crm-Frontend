@@ -10,7 +10,9 @@ import {
   Box,
   CircularProgress,
   Popover,
+  TextareaAutosize
 } from "@material-ui/core";
+import useResizeObserver from "use-resize-observer";
 import { makeStyles } from "@material-ui/core/styles";
 import { connect } from "react-redux";
 import {
@@ -21,6 +23,13 @@ import {
   setChatBoxMessageData,
   setChatBoxWindowSize,
   setChatBoxMessageTextInput,
+  setChatBoxMessageTextBoxHeight,
+  setChatBoxContainerChatSearchToggle,
+  setChatBoxSearchText,
+  setChatBoxContainerChatSearchCount,
+  setChatBoxContainerChatSearchUpButtonToggle,
+  setChatBoxContainerChatSearchDownButtonToggle,
+  setChatBoxTypingMessageDetails,
 } from "../../store/actions/ChatBoxActions";
 import {
   setFollowUpDialogToggle,
@@ -41,6 +50,14 @@ import FollowUpDialog from "./FollowUpDialog";
 import FacebookAvatar from "./FacebookAvatar";
 import FacebookTypography from "./FacebookTypography";
 import ErrorIcon from "@material-ui/icons/Error";
+import CheckIcon from "@material-ui/icons/Check";
+import highlightSearchIncludes from "./highlightSearchIncludes";
+import ClearIcon from "@material-ui/icons/Clear";
+import ArrowDropUpIcon from "@material-ui/icons/ArrowDropUp";
+import ArrowDropDownIcon from "@material-ui/icons/ArrowDropDown";
+import includes from "./includes";
+import ChatContainerTypingMessageStatus from "./ChatContainerTypingMessageStatus";
+import ChatContainerUserNameTypography from "./ChatContainerUserNameTypography";
 const useStyles = makeStyles((theme) => ({
   chatTabHeaderContainer: {
     display: "flex",
@@ -85,10 +102,17 @@ const useStyles = makeStyles((theme) => ({
   },
   sendMessageButton: {
     padding: "0 9px",
+    alignSelf: "flex-end",
+    background: "#b5b3b3",
+    height: 41,
+    borderRadius: 0,
+    "&:hover": {
+      background: "#9c9c9c",
+    },
   },
   messageTextAndSendContainer: {
     display: "flex",
-    background: "#b5b3b3",
+    background: "white",
   },
   incomingMessage: {
     background: "#cccbcb",
@@ -96,6 +120,7 @@ const useStyles = makeStyles((theme) => ({
     display: "inline-block",
     padding: 15,
     margin: 5,
+    whiteSpace: "pre-wrap",
   },
   outgoingMessage: {
     background: "#66c047",
@@ -104,6 +129,7 @@ const useStyles = makeStyles((theme) => ({
     color: "white",
     padding: 15,
     margin: 5,
+    whiteSpace: "pre-wrap",
   },
   outgoingMessageContainer: {
     display: "flex",
@@ -124,6 +150,8 @@ const useStyles = makeStyles((theme) => ({
   },
   labelAddButton: {
     borderRadius: 0,
+    alignSelf: "flex-end",
+    height: 41,
   },
   addLabelsPopoverPaper: {
     borderRadius: 0,
@@ -133,6 +161,7 @@ const useStyles = makeStyles((theme) => ({
     borderBottom: "1px solid gray",
     margin: "25px 55px",
     fontSize: 15,
+    display: "block",
   },
   chatMessageProgress: {
     width: "19px!important",
@@ -144,6 +173,67 @@ const useStyles = makeStyles((theme) => ({
     color: "#f50057",
     marginTop: "auto",
     marginBottom: "auto",
+  },
+  messageTextBox: {
+    padding: "0 6px",
+    border: "1px solid gray",
+    outline: "none",
+    font: "inherit",
+    maxHeight: 180,
+    flex: 1,
+    minHeight: 30,
+    paddingTop: 8,
+    overflow: "auto!important",
+  },
+  unreadMessage: {
+    background: "red",
+  },
+  readMessage: {
+    background: "red",
+  },
+  seenMessageIcon: {
+    width: 16,
+    height: 16,
+  },
+  deliveredMessageIconContainer: {
+    border: "1px solid gray",
+    alignSelf: "flex-end",
+    borderRadius: "50%",
+    display: "flex",
+    marginBottom: 8,
+  },
+  deliveredMessageIcon: {
+    fontSize: 14,
+  },
+  seenMessageIconContainer: {
+    display: "flex",
+    marginBottom: 8,
+    alignSelf: "flex-end",
+  },
+  clearSearchButton: {
+    padding: 0,
+    padding: 10,
+  },
+  chatBoxSearchToolbar: {
+    order: 1,
+    width: 140,
+  },
+  chatBoxSearchDownButton: {
+    padding: 0,
+  },
+  chatBoxSearchUpButton: {
+    padding: 0,
+  },
+  chatBoxSearchTextFieldInput: {
+    border: "1px solid gray",
+    padding: 10,
+  },
+  chatBoxSearchTextFieldInputRoot: {
+    borderRadius: 0,
+    padding: 0,
+  },
+  chatBoxSearchText: {
+    width: "100%",
   },
 }));
 const ChatContainer = (props) => {
@@ -187,41 +277,62 @@ const ChatContainer = (props) => {
     }
   }, [addChatToFacebookQueryError]);
 
+  var messages = _.find(
+    props.chatBoxMessageData,
+    (itm) =>
+      itm.customerId == props.itemData.customerId &&
+      itm.pageId == props.itemData.pageId
+  );
+
   useEffect(() => {
     if (
       addChatToFacebookQueryResult &&
       addChatToFacebookQueryResult.addchattofacebook
     ) {
       if (addChatToFacebookQueryResult.addchattofacebook.success) {
-        var result = JSON.parse(
-          addChatToFacebookQueryResult.addchattofacebook.result
-        );
-        var findItem = _.find(
-          messages.messages,
-          (item) => item.outgoingMessageId == result.outgoingMessageId
-        );
+        if (messages) {
+          var result = JSON.parse(
+            addChatToFacebookQueryResult.addchattofacebook.result
+          );
+          var findItem = _.find(
+            messages.messages,
+            (item) => item.outgoingMessageId == result.outgoingMessageId
+          );
 
-        if (findItem) {
-          findItem.loading = false;
-          findItem.messageId = result.message_id;
-          props.setChatBoxMessageData(_.cloneDeep(props.chatBoxMessageData));
+          if (findItem) {
+            _.remove(
+              messages.messages,
+              (item) => item.messageId == result.message_id
+            ); // removing if its already been added in subscription
+
+            findItem.loading = false;
+            findItem.messageId = result.message_id;
+
+            props.setChatBoxMessageData(_.cloneDeep(props.chatBoxMessageData));
+          }
         }
       } else {
-        enqueueSnackbar(addChatToFacebookQueryResult.addchattofacebook.error, {
-          variant: "error",
-        });
-        var result = JSON.parse(
-          addChatToFacebookQueryResult.addchattofacebook.result
-        );
-        var findItem = _.find(
-          messages.messages,
-          (item) => item.outgoingMessageId == result.outgoingMessageId
-        );
+        if (messages) {
+          enqueueSnackbar(
+            addChatToFacebookQueryResult.addchattofacebook.error,
+            {
+              variant: "error",
+            }
+          );
+          var result = JSON.parse(
+            addChatToFacebookQueryResult.addchattofacebook.result
+          );
+          var findItem = _.find(
+            messages.messages,
+            (item) => item.outgoingMessageId == result.outgoingMessageId
+          );
 
-        if (findItem) {
-          findItem.loading = false;
-          findItem.error = addChatToFacebookQueryResult.addchattofacebook.error;
-          props.setChatBoxMessageData(_.cloneDeep(props.chatBoxMessageData));
+          if (findItem) {
+            findItem.loading = false;
+            findItem.error =
+              addChatToFacebookQueryResult.addchattofacebook.error;
+            props.setChatBoxMessageData(_.cloneDeep(props.chatBoxMessageData));
+          }
         }
       }
     }
@@ -237,6 +348,7 @@ const ChatContainer = (props) => {
       $messagetype: String!
       $agentId: ID!
       $alternateagentId: ID
+      $read: Int!
     ) {
       addchatdetail(
         customerId: $customerId
@@ -247,6 +359,7 @@ const ChatContainer = (props) => {
         messagetype: $messagetype
         agentId: $agentId
         alternateagentId: $alternateagentId
+        read: $read
       ) {
         success
         error
@@ -279,12 +392,16 @@ const ChatContainer = (props) => {
 
   const ChatDetailsByAgentCutomerPageIdQuery = gql`
     query ChatDetailsByAgentCutomerPageId(
+      $userID: ID!
       $customerId: String!
       $pageId: String!
+      $markChatRead: Boolean!
     ) {
       chatdetailsbyagentcutomerpageid(
+        userID: $userID
         customerId: $customerId
         pageId: $pageId
+        markChatRead: $markChatRead
       ) {
         id
         customerId
@@ -296,6 +413,8 @@ const ChatContainer = (props) => {
         agentId
         alternateagentId
         read
+        deliverytimestamp
+        receiptreadtimestamp
       }
     }
   `;
@@ -337,7 +456,9 @@ const ChatContainer = (props) => {
 
           messageText =
             messages.messagetype == "followuplabel"
-              ? `${messageText[0]} at ${moment.unix(messageText[1] / 1000).format("yyyy-MM-DD hh:mm A")}`
+              ? `${messageText[0]} at ${moment
+                  .unix(messageText[1] / 1000)
+                  .format("yyyy-MM-DD hh:mm A")}`
               : messageText;
 
           chatData.messages.push({
@@ -346,6 +467,8 @@ const ChatContainer = (props) => {
             timestamp: messages.messagetimestamp,
             type: messages.messagetype,
             messageId: messages.messageId,
+            deliverytimestamp: messages.deliverytimestamp,
+            receiptreadtimestamp: messages.receiptreadtimestamp,
           });
         }
       );
@@ -366,7 +489,17 @@ const ChatContainer = (props) => {
   }, [chatDetailsByAgentCutomerPageIdQueryResult]);
 
   useEffect(() => {
-    if (props.itemData) callChatDetailsByAgentCutomerPageId();
+    if (props.itemData) {
+      props.setChatBoxTypingMessageDetails(null);
+      if (
+        props.chatBoxRecentSearchText != "" &&
+        props.chatBoxRecentSearchChatIds.length > 0
+      ) {
+        props.setChatBoxContainerChatSearchToggle(true);
+        props.setChatBoxSearchText(props.chatBoxRecentSearchText);
+      }
+      callChatDetailsByAgentCutomerPageId();
+    }
   }, [props.itemData]);
 
   useEffect(() => {
@@ -374,18 +507,19 @@ const ChatContainer = (props) => {
       if (props.itemData) callChatDetailsByAgentCutomerPageId();
   }, [props.chatBoxSubscriptionStatus]);
 
+  var userIdForChatContainerQuery = new includes().getUserIdForChatContainerQuery(props.itemData);
+
   const callChatDetailsByAgentCutomerPageId = () => {
     chatDetailsByAgentCutomerPageId({
       variables: {
+        userID: userIdForChatContainerQuery,
         customerId: props.itemData.customerId,
         pageId: props.itemData.pageId,
+        markChatRead: !props.itemData.read,
       },
     });
   };
-  var messages = _.find(
-    props.chatBoxMessageData,
-    (itm) => itm.customerId == props.itemData.customerId
-  );
+
   const messageContainerRef = useRef(null);
   useEffect(() => {
     if (messageContainerRef.current)
@@ -407,11 +541,30 @@ const ChatContainer = (props) => {
     }
     // Add event listener
     window.addEventListener("resize", handleResize);
+    document.addEventListener("keydown", handleKeyDown, false);
     // Call handler right away so state gets updated with initial window size
     handleResize();
-    return () => window.removeEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      document.removeEventListener("keydown", handleKeyDown, false);
+    };
   }, []); // Empty array ensures that effect is only run on mount
+  const chatBoxContainerChatSearchToggleRef = useRef(null);
+  chatBoxContainerChatSearchToggleRef.current =
+    props.chatBoxContainerChatSearchToggle;
 
+  const handleKeyDown = (event) => {
+    if (event.keyCode == 70 && event.ctrlKey) {
+      event.preventDefault();
+
+      if (chatBoxContainerChatSearchToggleRef.current) {
+        props.setChatBoxSearchText("");
+        props.setChatBoxContainerChatSearchToggle(false);
+      } else {
+        props.setChatBoxContainerChatSearchToggle(true);
+      }
+    }
+  };
   function guidGenerator() {
     var S4 = function () {
       return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
@@ -440,6 +593,14 @@ const ChatContainer = (props) => {
       );
       if (pageDataForAccessToken) {
         var uid = guidGenerator();
+        messages.messages.push({
+          loading: true,
+          text: props.chatBoxMessageTextInput,
+          timestamp: moment().unix() * 1000,
+          type: "outgoing",
+          messageId: null,
+          outgoingMessageId: uid,
+        });
         addChatToFacebook({
           variables: {
             customerId: props.itemData.customerId,
@@ -448,15 +609,6 @@ const ChatContainer = (props) => {
             outgoingMessageId: uid,
             accesstoken: pageDataForAccessToken.accesstoken,
           },
-        });
-
-        messages.messages.push({
-          loading: true,
-          text: props.chatBoxMessageTextInput,
-          timestamp: moment().unix() * 1000,
-          type: "outgoing",
-          messageId: null,
-          outgoingMessageId: uid,
         });
 
         props.setChatBoxMessageData(_.cloneDeep(props.chatBoxMessageData));
@@ -469,6 +621,116 @@ const ChatContainer = (props) => {
       }
     }
   };
+
+  const chatBoxMessageTextInputRef = useRef(null);
+
+  const setChatBoxMessageTextInput = () => {
+    if (chatBoxMessageTextInputRef.current) {
+      props.setChatBoxMessageTextBoxHeight(
+        chatBoxMessageTextInputRef.current.clientHeight
+      );
+    }
+  };
+  useEffect(() => {
+    setChatBoxMessageTextInput();
+  }, [chatBoxMessageTextInputRef]);
+
+  var outgoingMessageSeenLastItem =
+    messages &&
+    _.last(
+      _.filter(
+        messages.messages,
+        (mess) => mess.type == "outgoing" && mess.receiptreadtimestamp
+      )
+    );
+
+  var outgoingMessageDeliveredLastItem =
+    messages &&
+    _.last(
+      _.filter(
+        messages.messages,
+        (mess) =>
+          mess.type == "outgoing" &&
+          mess.deliverytimestamp &&
+          !mess.receiptreadtimestamp
+      )
+    );
+
+  var searchCount = 0;
+
+  var allLabelsUsed =
+    messages && _.filter(messages.messages, (mess) => mess.type == "label");
+
+  useEffect(() => {
+    if (props.chatBoxSearchText != "") {
+      if (messageContainerRef.current) {
+        props.setChatBoxContainerChatSearchCount(0);
+        new highlightSearchIncludes().showNextSearch(
+          0,
+          messageContainerRef.current,
+          props.setChatBoxContainerChatSearchCount,
+          props.setChatBoxContainerChatSearchUpButtonToggle,
+          props.setChatBoxContainerChatSearchDownButtonToggle
+        );
+      } else {
+        props.setChatBoxContainerChatSearchUpButtonToggle(false);
+        props.setChatBoxContainerChatSearchDownButtonToggle(false);
+      }
+    } else {
+      props.setChatBoxContainerChatSearchUpButtonToggle(false);
+      props.setChatBoxContainerChatSearchDownButtonToggle(false);
+    }
+  }, [props.chatBoxSearchText, messageContainerRef, props.itemData, messages]);
+
+  const MessageTypingStatusChanged = gql`
+    mutation MessageTypingStatusChanged(
+      $customerId: String!
+      $pageId: String!
+      $agentId: ID!
+      $userId: ID!
+      $username: String!
+    ) {
+      messagetypingstatuschanged(
+        customerId: $customerId
+        pageId: $pageId
+        agentId: $agentId
+        userId: $userId
+        username: $username
+      ) {
+        agentId
+        userId
+        username
+      }
+    }
+  `;
+
+  let [messageTypingStatusChanged, {}] = useMutation(
+    MessageTypingStatusChanged
+  );
+
+  var chatBoxMessageTextInputTimeOutForMessageTypingStatus = null;
+  useEffect(() => {
+    if (chatBoxMessageTextInputTimeOutForMessageTypingStatus)
+      chatBoxMessageTextInputTimeOutForMessageTypingStatus.clear();
+
+    if (props.chatBoxMessageTextInput != "") {
+      chatBoxMessageTextInputTimeOutForMessageTypingStatus = setTimeout(
+        () => {
+          messageTypingStatusChanged({
+            variables: {
+              customerId: props.itemData.customerId,
+              pageId: props.itemData.pageId,
+              agentId:userIdForChatContainerQuery,
+              userId: props.authUserId,
+              username: props.authUserName,
+            },
+          });
+        },
+
+        500
+      );
+    }
+  }, [props.chatBoxMessageTextInput]);
 
   return (
     <Container
@@ -505,13 +767,17 @@ const ChatContainer = (props) => {
                     ]),
                     messagetimestamp: (moment().unix() * 1000).toString(),
                     messagetype: "followuplabel",
-                    agentId: props.authUserId,
+                    agentId: userIdForChatContainerQuery,
                     alternateagentId: props.authUserId,
+                    read: 1,
                   },
                 });
                 props.setFollowUpDialogToggle(false);
               }}
             />
+            {props.chatBoxRecentChatListShowAllListToggle &&
+           <ChatContainerUserNameTypography agentId={userIdForChatContainerQuery}/>
+            }
             <Button
               className={classes.formAddButton}
               onClick={() => {
@@ -520,7 +786,7 @@ const ChatContainer = (props) => {
                     modalWidth: 350,
                     modalHeight:
                       props.chatBoxWindowSize.height -
-                      props.userPanelAppBarHeight -
+                      props.authMainAppBarHeight -
                       50,
                     modalX: 0,
                     modalY: 0,
@@ -613,6 +879,80 @@ const ChatContainer = (props) => {
             </Tooltip>
           </Container>
           <Container maxWidth={false} disableGutters={true}>
+            {props.chatBoxContainerChatSearchToggle && (
+              <Container disableGutters={true}>
+                <TextField
+                  autoFocus={true}
+                  value={props.chatBoxSearchText}
+                  onInput={(e) => {
+                    props.setChatBoxSearchText(e.target.value);
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <Container
+                        disableGutters={true}
+                        className={classes.chatBoxSearchToolbar}
+                      >
+                        <IconButton
+                          disabled={
+                            !props.chatBoxContainerChatSearchUpButtonToggle
+                          }
+                          className={classes.chatBoxSearchUpButton}
+                          onClick={() => {
+                            new highlightSearchIncludes().showPrevSearch(
+                              props.chatBoxContainerChatSearchCount,
+                              messageContainerRef.current,
+                              props.setChatBoxContainerChatSearchCount,
+                              props.setChatBoxContainerChatSearchUpButtonToggle,
+                              props.setChatBoxContainerChatSearchDownButtonToggle
+                            );
+                          }}
+                        >
+                          <ArrowDropUpIcon fontSize="large" />
+                        </IconButton>
+                        <IconButton
+                          className={classes.chatBoxSearchDownButton}
+                          disabled={
+                            !props.chatBoxContainerChatSearchDownButtonToggle
+                          }
+                          onClick={() => {
+                            new highlightSearchIncludes().showNextSearch(
+                              props.chatBoxContainerChatSearchCount,
+                              messageContainerRef.current,
+                              props.setChatBoxContainerChatSearchCount,
+                              props.setChatBoxContainerChatSearchUpButtonToggle,
+                              props.setChatBoxContainerChatSearchDownButtonToggle
+                            );
+                          }}
+                        >
+                          <ArrowDropDownIcon fontSize="large" />
+                        </IconButton>
+                        <IconButton
+                          className={classes.clearSearchButton}
+                          onClick={() => {
+                            props.setChatBoxSearchText("");
+                            props.setChatBoxContainerChatSearchToggle(false);
+                          }}
+                        >
+                          <ClearIcon fontSize="small" />
+                        </IconButton>
+                      </Container>
+                    ),
+                    classes: {
+                      input: classes.chatBoxSearchTextFieldInput,
+                      root: classes.chatBoxSearchTextFieldInputRoot,
+                    },
+                  }}
+                  className={classes.chatBoxSearchText}
+                  InputAdornmentProps={{
+                    position: "end",
+                    style: { order: 2, marginLeft: 0 },
+                  }}
+                  placeholder="Search"
+                  variant={"outlined"}
+                ></TextField>
+              </Container>
+            )}
             <Container
               ref={messageContainerRef}
               maxWidth={false}
@@ -620,8 +960,22 @@ const ChatContainer = (props) => {
               style={{
                 height:
                   props.chatBoxSelectedChatsOnFloating.length > 1
-                    ? `calc(100vh - ${props.userPanelAppBarHeight}px - 144.5px)`
-                    : `calc(100vh - ${props.userPanelAppBarHeight}px - 92px)`,
+                    ? `calc(100vh - ${
+                        props.authMainAppBarHeight
+                      }px - 102.5px - ${
+                        props.chatBoxMessageTextBoxHeight
+                      }px - ${
+                        props.chatBoxContainerChatSearchToggle ? "46" : "0"
+                      }px - ${
+                        new includes().showChatBoxManagersList(props.authPanelType) ? "52" : "0"
+                      }px)`
+                    : `calc(100vh - ${props.authMainAppBarHeight}px - 50px - ${
+                        props.chatBoxMessageTextBoxHeight
+                      }px - ${
+                        props.chatBoxContainerChatSearchToggle ? "46" : "0"
+                      }px - ${
+                        new includes().showChatBoxManagersList(props.authPanelType) ? "52" : "0"
+                      }px)`,
               }}
               className={classes.messageBox}
             >
@@ -631,8 +985,13 @@ const ChatContainer = (props) => {
                   size={24}
                 />
               ) : (
-                messages.messages.map((item) => {
-                  console.log(item.error);
+                messages.messages.map((item, index, { length }) => {
+                  var textCreated =
+                    new highlightSearchIncludes().getSearchContentText(
+                      props.chatBoxSearchText,
+                      item.text
+                    );
+                  if (textCreated.containsSearch) searchCount++;
                   return item.type == "outgoing" ? (
                     <div className={classes.outgoingMessageContainer}>
                       {item.loading && (
@@ -655,11 +1014,72 @@ const ChatContainer = (props) => {
                         placement={"left"}
                         title={moment
                           .unix(item.timestamp / 1000)
-                          .format("DD MMM YYYY hh:mm a")}
+                          .format("DD MMM YYYY hh:mm a") }
                         className={classes.outgoingMessage}
                       >
-                        <span>{item.text}</span>
+                        <span
+                          data-search={
+                            textCreated.containsSearch
+                              ? "Search" + searchCount
+                              : undefined
+                          }
+                          dangerouslySetInnerHTML={{
+                            __html: textCreated.text,
+                          }}
+                        ></span>
                       </Tooltip>
+                      {!item.loading &&
+                        outgoingMessageSeenLastItem &&
+                        outgoingMessageSeenLastItem.messageId ==
+                          item.messageId && (
+                          <Tooltip
+                            arrow={true}
+                            placement={"left"}
+                            title={
+                              "Seen at " +
+                              moment
+                                .unix(item.receiptreadtimestamp / 1000)
+                                .format("DD MMM YYYY hh:mm a")
+                            }
+                          >
+                            <span className={classes.seenMessageIconContainer}>
+                              <FacebookAvatar
+                                key={props.itemData.customerId}
+                                className={classes.seenMessageIcon}
+                                type="customer"
+                                item={props.itemData}
+                              ></FacebookAvatar>
+                            </span>
+                          </Tooltip>
+                        )}
+                      {!item.loading &&
+                        !(
+                          outgoingMessageSeenLastItem &&
+                          outgoingMessageSeenLastItem.messageId ==
+                            item.messageId
+                        ) &&
+                        outgoingMessageDeliveredLastItem &&
+                        outgoingMessageDeliveredLastItem.messageId ==
+                          item.messageId && (
+                          <Tooltip
+                            arrow={true}
+                            placement={"left"}
+                            title={
+                              "Delivered at " +
+                              moment
+                                .unix(item.deliverytimestamp / 1000)
+                                .format("DD MMM YYYY hh:mm a")
+                            }
+                          >
+                            <span
+                              className={classes.deliveredMessageIconContainer}
+                            >
+                              <CheckIcon
+                                className={classes.deliveredMessageIcon}
+                              />
+                            </span>
+                          </Tooltip>
+                        )}
                     </div>
                   ) : item.type == "incoming" ? (
                     <div>
@@ -668,10 +1088,19 @@ const ChatContainer = (props) => {
                         placement={"right"}
                         title={moment
                           .unix(item.timestamp / 1000)
-                          .format("DD MMM YYYY hh:mm a")}
+                          .format("DD MMM YYYY hh:mm a") }
                         className={classes.incomingMessage}
                       >
-                        <span>{item.text}</span>
+                        <span
+                          data-search={
+                            textCreated.containsSearch
+                              ? "Search" + searchCount
+                              : undefined
+                          }
+                          dangerouslySetInnerHTML={{
+                            __html: textCreated.text,
+                          }}
+                        ></span>
                       </Tooltip>
                     </div>
                   ) : (
@@ -681,10 +1110,19 @@ const ChatContainer = (props) => {
                         placement={"top"}
                         title={moment
                           .unix(item.timestamp / 1000)
-                          .format("DD MMM YYYY hh:mm a")}
+                          .format("DD MMM YYYY hh:mm a") }
                         className={classes.userLabel}
                       >
-                        <Typography>{item.text}</Typography>
+                        <span
+                          data-search={
+                            textCreated.containsSearch
+                              ? "Search" + searchCount
+                              : undefined
+                          }
+                          dangerouslySetInnerHTML={{
+                            __html: textCreated.text,
+                          }}
+                        ></span>
                       </Tooltip>
                     </div>
                   );
@@ -693,7 +1131,7 @@ const ChatContainer = (props) => {
             </Container>
             <Box className={classes.messageTextAndSendContainer}>
               <Button
-                disabled={!props.userPanelChatOnline}
+                disabled={!props.chatBoxSubscriptionStatus}
                 aria-describedby={
                   Boolean(props.chatBoxLabelsPopoverAnchorEl)
                     ? "addLabelButton"
@@ -728,6 +1166,10 @@ const ChatContainer = (props) => {
                 }}
               >
                 <LabelsList
+                  marknottoaddinchatcircle={
+                    props.chatBoxMarkNotToAddInChatCircleForLabel
+                  }
+                  usedLabels={allLabelsUsed}
                   onItemClick={(item) => {
                     if (item.id == 0) {
                       props.setFollowUpDialogToggle(true);
@@ -739,9 +1181,10 @@ const ChatContainer = (props) => {
                           messageId: null,
                           messagetext: item.text,
                           messagetimestamp: (moment().unix() * 1000).toString(),
-                          messagetype: "label",
-                          agentId: props.authUserId,
+                          messagetype: item.id == 1 ? "closelabel" : "label",
+                          agentId: userIdForChatContainerQuery,
                           alternateagentId: props.authUserId,
+                          read: 1,
                         },
                       });
                     }
@@ -753,11 +1196,21 @@ const ChatContainer = (props) => {
                   }}
                 />
               </Popover>
-              <TextField
-                disabled={!props.userPanelChatOnline}
+              <TextareaAutosize
+                onKeyUp={() => {
+                  setChatBoxMessageTextInput();
+                }}
+                ref={chatBoxMessageTextInputRef}
+                disabled={!props.chatBoxSubscriptionStatus}
+                onKeyPress={(e) => {
+                  if (e.keyCode == 13 && !e.shiftKey) {
+                    e.preventDefault();
+                  }
+                }}
                 onKeyDown={(e) => {
-                  if (e.keyCode == 13) {
+                  if (e.keyCode == 13 && !e.shiftKey) {
                     addMessageInputText();
+                    e.preventDefault();
                   }
                 }}
                 value={props.chatBoxMessageTextInput}
@@ -774,9 +1227,11 @@ const ChatContainer = (props) => {
                 }}
                 placeholder={"Type message"}
                 autoFocus
-              ></TextField>
+                className={classes.messageTextBox}
+              />
+
               <IconButton
-                disabled={!props.userPanelChatOnline}
+                disabled={!props.chatBoxSubscriptionStatus}
                 onClick={() => {
                   addMessageInputText();
                 }}
@@ -784,6 +1239,7 @@ const ChatContainer = (props) => {
               >
                 <SendIcon />
               </IconButton>
+              <ChatContainerTypingMessageStatus />
             </Box>
           </Container>
         </>
@@ -797,6 +1253,7 @@ const mapStateToProps = (state) => {
     ...state.UserPanelReducer,
     ...state.AuthReducer,
     ...state.FollowUpDialogReducer,
+    ...state.UsersListReducer,
   };
 };
 export default connect(mapStateToProps, {
@@ -809,4 +1266,11 @@ export default connect(mapStateToProps, {
   setFollowUpDialogDateTime,
   setChatBoxWindowSize,
   setChatBoxMessageTextInput,
+  setChatBoxMessageTextBoxHeight,
+  setChatBoxContainerChatSearchToggle,
+  setChatBoxSearchText,
+  setChatBoxContainerChatSearchCount,
+  setChatBoxContainerChatSearchUpButtonToggle,
+  setChatBoxContainerChatSearchDownButtonToggle,
+  setChatBoxTypingMessageDetails,
 })(ChatContainer);

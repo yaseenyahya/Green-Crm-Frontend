@@ -48,6 +48,8 @@ const AddUsers = (props) => {
           name
         }
         settings
+        agentlimitchatassign
+        pages
       }
     }
   `;
@@ -64,8 +66,10 @@ const AddUsers = (props) => {
   });
 
   useEffect(() => {
+    document.title = "Add/Edit Users";
     window.Object.freeze = function(obj) { return obj }
     getUsers();
+   
   }, []);
 
   const DeleteUserMutation = gql`

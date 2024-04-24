@@ -1,4 +1,4 @@
-import React, { Component,useEffect } from "react";
+import React, { useRef,useEffect } from "react";
 
 import {
   IconButton,
@@ -6,12 +6,15 @@ import {
   MenuItem,
   ClickAwayListener,
   Paper,
-  Popper,
+  Popover,
   Grow,
+  Divider,
 } from "@material-ui/core";
 import { connect } from "react-redux";
+import LoginAsModal from "../LoginAsModal";
 import { makeStyles } from "@material-ui/core/styles";
 import { setAdminPanelProfilePicMenuAnchorEl } from "../../store/actions/AdminpanelActions";
+import { setLoginAsModalToggle } from "../../store/actions/LoginAsModalActions";
 import LazyLoad from "react-lazyload";
 import Auth from "../../auth/auth";
 import { setRedirectToPath } from "../../store/actions/RedirectToPathActions";
@@ -31,7 +34,16 @@ const useStyles = makeStyles((theme) => ({
   },
   profilePicMenuItem: {
     color: "white",
+    cursor: "pointer",
+    pointerEvents: "auto",
   },
+
+  popover: {
+    pointerEvents: "none",
+  },
+  profilePicMenuItemDivider:{
+    background:"white"
+  }
 }));
 
 const ProfilePictureMenu = (props) => {
@@ -67,9 +79,11 @@ const ProfilePictureMenu = (props) => {
     }
   }, [logoutQueryResult]);
 
+
   return (
-    <>
+    <div >
       <IconButton
+       className={props.profilePicClassName}
         onClick={handleProfilePicMenuClick}
         aria-controls={
           Boolean(props.adminPanelProfilePicMenuAnchorEl)
@@ -89,21 +103,25 @@ const ProfilePictureMenu = (props) => {
           )}
         </LazyLoad>
       </IconButton>
-      <Popper
+      <LoginAsModal mainContainerRef={props.mainContainerRef}/>
+      <Popover
+        container={props.mainContainerRef.current}
+        classes={{ root: classes.popover }}
+        disableEnforceFocus={true}
         open={Boolean(props.adminPanelProfilePicMenuAnchorEl)}
-        anchorEl={props.adminPanelProfilePicMenuAnchorEl}
-        role={undefined}
-        transition
-        disablePortal
+        anchorEl={
+          props.adminPanelProfilePicMenuAnchorEl
+        }
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "center",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "center",
+        }}
       >
-        {({ TransitionProps, placement }) => (
-          <Grow
-            {...TransitionProps}
-            style={{
-              transformOrigin:
-                placement === "bottom" ? "center top" : "center bottom",
-            }}
-          >
+        
             <Paper className={classes.profilePicMenuPaper}>
               <ClickAwayListener onClickAway={handleProfilePicMenuClose}>
                 <MenuList
@@ -122,13 +140,26 @@ const ProfilePictureMenu = (props) => {
                   >
                     Logout
                   </MenuItem>
-                </MenuList>
+              
+                <Divider className={classes.profilePicMenuItemDivider}/>
+                  <MenuItem
+                    className={classes.profilePicMenuItem}
+                    onClick={async () => {
+                      props.setLoginAsModalToggle(true);
+                      handleProfilePicMenuClose();
+                    }}
+                  >
+                    Login As
+                  </MenuItem>
+                  </MenuList>
+                 
               </ClickAwayListener>
             </Paper>
-          </Grow>
-        )}
-      </Popper>
-    </>
+     
+        
+      </Popover>
+     
+    </div>
   );
 };
 
@@ -138,4 +169,5 @@ const mapStateToProps = (state) => {
 export default connect(mapStateToProps, {
   setAdminPanelProfilePicMenuAnchorEl,
   setRedirectToPath,
+  setLoginAsModalToggle
 })(ProfilePictureMenu);

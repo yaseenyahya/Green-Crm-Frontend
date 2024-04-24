@@ -1,4 +1,4 @@
-import React, { Component,useEffect } from "react";
+import React, { Component, useEffect } from "react";
 
 import {
   IconButton,
@@ -23,7 +23,7 @@ const useStyles = makeStyles((theme) => ({
     width: 55,
     border: "1px solid #beb7b7",
     borderRadius: "50%",
-    height: 55
+    height: 55,
   },
   profilePicMenuPaper: {
     background: "rgb(26 39 51 / 73%)",
@@ -69,7 +69,8 @@ const ProfilePictureMenu = (props) => {
 
   return (
     <>
-      <IconButton className={props.profilePicClassName}
+      <IconButton
+        className={props.profilePicClassName}
         onClick={handleProfilePicMenuClick}
         aria-controls={
           Boolean(props.userPanelProfilePicMenuAnchorEl)
@@ -80,7 +81,10 @@ const ProfilePictureMenu = (props) => {
       >
         <LazyLoad height={200}>
           {props.profilePicture ? (
-            <img src={props.profilePicture}  className={classes.profilePicture}/>
+            <img
+              src={props.profilePicture}
+              className={classes.profilePicture}
+            />
           ) : (
             <img
               className={classes.profilePicture}
@@ -107,21 +111,21 @@ const ProfilePictureMenu = (props) => {
             <Paper className={classes.profilePicMenuPaper}>
               <ClickAwayListener onClickAway={handleProfilePicMenuClose}>
                 <MenuList
-                  autoFocusItem={Boolean(
-                    props.userPanelProfilePicMenuAnchorEl
-                  )}
+                  autoFocusItem={Boolean(props.userPanelProfilePicMenuAnchorEl)}
                   id="menu-list-grow"
                   keepMounted
                 >
-                  <MenuItem
-                    className={classes.profilePicMenuItem}
-                    onClick={async () => {
-                      logout();
-                      handleProfilePicMenuClose();
-                    }}
-                  >
-                    Logout
-                  </MenuItem>
+                  {props.authUserSwitchAccountSettings == null && (
+                    <MenuItem
+                      className={classes.profilePicMenuItem}
+                      onClick={async () => {
+                        logout();
+                        handleProfilePicMenuClose();
+                      }}
+                    >
+                      Logout
+                    </MenuItem>
+                  )}
                 </MenuList>
               </ClickAwayListener>
             </Paper>
@@ -133,7 +137,7 @@ const ProfilePictureMenu = (props) => {
 };
 
 const mapStateToProps = (state) => {
-  return { ...state.UserPanelReducer };
+  return { ...state.UserPanelReducer, ...state.AuthReducer };
 };
 export default connect(mapStateToProps, {
   setUserPanelProfilePicMenuAnchorEl,

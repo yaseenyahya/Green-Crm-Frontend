@@ -6,7 +6,7 @@ import {
   MenuItem,
   ClickAwayListener,
   Paper,
-  Popper,
+  Popover,
   Grow,
 } from "@material-ui/core";
 import { connect } from "react-redux";
@@ -26,6 +26,12 @@ const useStyles = makeStyles((theme) => ({
   },
   settingsMenuItem: {
     color: "white",
+    cursor: "pointer",
+    pointerEvents: "auto",
+  },
+
+  popover: {
+    pointerEvents: "none",
   },
 }));
 
@@ -39,9 +45,9 @@ const SettingsMenu = (props) => {
   const handleSettingsPicMenuClose = () => {
     props.setAdminPanelSettingsMenuAnchorEl(null);
   };
-  const mainContainerRef = useRef(null);
+ 
   return (
-    <div ref={mainContainerRef}>
+    <div >
       <IconButton
         onClick={handleSettingsMenuClick}
         aria-controls={
@@ -53,22 +59,25 @@ const SettingsMenu = (props) => {
       >
         <SettingsIcon className={classes.settingsIcon} />
       </IconButton>
-      <AccountUserInfoSettingsModal mainContainerRef={mainContainerRef} />
-      <Popper
+      <AccountUserInfoSettingsModal mainContainerRef={props.mainContainerRef} />
+      <Popover
+        container={props.mainContainerRef.current}
+        classes={{ root: classes.popover }}
+        disableEnforceFocus={true}
         open={Boolean(props.adminPanelSettingsMenuAnchorEl)}
-        anchorEl={props.adminPanelSettingsMenuAnchorEl}
-        role={undefined}
-        transition
-        disablePortal
+        anchorEl={
+          props.adminPanelSettingsMenuAnchorEl
+        }
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "center",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "center",
+        }}
       >
-        {({ TransitionProps, placement }) => (
-          <Grow
-            {...TransitionProps}
-            style={{
-              transformOrigin:
-                placement === "bottom" ? "center top" : "center bottom",
-            }}
-          >
+   
             <Paper className={classes.settingsMenuPaper}>
               <ClickAwayListener onClickAway={handleSettingsPicMenuClose}>
                 <MenuList
@@ -81,6 +90,7 @@ const SettingsMenu = (props) => {
                     onClick={async () => {
                       handleSettingsPicMenuClose();
                       props.setAccountUserInfoSettingsModalToggle(true);
+            
                     }}
                   >
                     Account Settings
@@ -88,9 +98,8 @@ const SettingsMenu = (props) => {
                 </MenuList>
               </ClickAwayListener>
             </Paper>
-          </Grow>
-        )}
-      </Popper>
+
+      </Popover>
     </div>
   );
 };

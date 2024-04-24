@@ -5,9 +5,9 @@ import {
   ADMIN_PANEL_NOTIFICATION_COUNT,
   ADMIN_PANEL_CHAT_ONLINE,
   ADMIN_PANEL_FULLSCREEN_TOGGLE,
-  ADMIN_PANEL_APPBAR_HEIGHT,
   ADMIN_PANEL_PROFILE_PIC_MENU_ANCHOR_EL,
-  ADMIN_PANEL_SETTINGS_MENU_ANCHOR_EL
+  ADMIN_PANEL_SETTINGS_MENU_ANCHOR_EL,
+  ADMIN_PANEL_CHAT_BOX_DRAWER_TOGGLE
 } from "../ActionTypes";
 import {LocalStorage} from "../../auth/LocalStorage";
 export const setAdminPanelDrawerToggle = (adminPanelDrawerToggle) => {
@@ -62,14 +62,7 @@ export const setAdminPanelFullscreenToggle = (adminPanelFullscreenToggle) => {
     },
   };
 };
-export const setAdminPanelAppBarHeight = (adminPanelAppBarHeight) => {
-  return {
-    type: ADMIN_PANEL_APPBAR_HEIGHT,
-    payload: {
-      adminPanelAppBarHeight: adminPanelAppBarHeight,
-    },
-  };
-};
+
 export const setAdminPanelSettingsMenuAnchorEl = (adminPanelSettingsMenuAnchorEl) => {
   return {
     type: ADMIN_PANEL_SETTINGS_MENU_ANCHOR_EL,
@@ -85,6 +78,16 @@ export const setAdminPanelProfilePicMenuAnchorEl = (
     type: ADMIN_PANEL_PROFILE_PIC_MENU_ANCHOR_EL,
     payload: {
       adminPanelProfilePicMenuAnchorEl: adminPanelProfilePicMenuAnchorEl,
+    },
+  };
+};
+export const setAdminPanelChatBoxDrawerToggle = (
+  adminPanelChatBoxDrawerToggle
+) => {
+  return {
+    type: ADMIN_PANEL_CHAT_BOX_DRAWER_TOGGLE,
+    payload: {
+      adminPanelChatBoxDrawerToggle: adminPanelChatBoxDrawerToggle,
     },
   };
 };

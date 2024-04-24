@@ -45,11 +45,26 @@ import {
   setAddEditUserModalNumber,
   setAddEditUserModalReset,
   setAddEditUserModalSettings,
+  setAddEditUserModalManagerFieldToggle,
+  setAddEditUserModalFacebookPagesFieldToggle,
+  setAddEditUserModalFacebookPages,
+  setAddEditUserModalAgentLimitChatsAssignFieldToggle,
+  setAddEditUserModalAgentLimitChatsAssign,
 } from "../../../store/actions/AddEditUserModalActions";
+import {
+  setDialogOpen,
+  setDialogOkText,
+  setDialogCancelText,
+  setDialogOkClick,
+  setDialogTitle,
+  setDialogContent,
+} from "../../../store/actions/DialogActions";
+import CustomDialogRedux from "../../CustomDialogRedux";
 import ImageCropper from "../../../otherComponents/ImageCropper";
 import { useSnackbar } from "notistack";
 import SettingsComponent from "./SettingsComponent";
 import resolveSettings from "../../../auth/resolveSettings";
+import FacebookList from "../addPages/FacebookList";
 const useStyles = makeStyles((theme) => ({
   gridItem: {
     display: "flex",
@@ -142,6 +157,22 @@ const useStyles = makeStyles((theme) => ({
       content: "''",
     },
   },
+  facebookPageImg: {
+    width: 30,
+    height: 30,
+    marginTop: 3,
+    marginBottom: 5,
+    borderRadius: "50%",
+  },
+  facebookPageName: {
+    marginLeft: 20,
+    display: "flex",
+    alignItems: "center",
+    fontSize: 15,
+  },
+  facebookListContainer: {
+    border: "1px solid gray",
+  },
 }));
 
 const AddEditUserModal = (props) => {
@@ -157,10 +188,11 @@ const AddEditUserModal = (props) => {
   let statusValidate = null;
   let designationIdValidate = null;
   let managerIdValidate = null;
+  let agentLimitChatsAssignValidate = null;
   let commentsValidate = null;
 
   useEffect(() => {
-    if (props.addEditUserModalSelectedRowData) {
+    if (props.addEditUserModalSelectedRowData != null) {
       props.setAddEditUserModalPicture(
         props.addEditUserModalSelectedRowData.picture
       );
@@ -181,10 +213,17 @@ const AddEditUserModal = (props) => {
       props.setAddEditUserModalDesignation(
         props.addEditUserModalSelectedRowData.designation.id
       );
+      
       props.setAddEditUserModalManager(
         props.addEditUserModalSelectedRowData.managerId
           ? props.addEditUserModalSelectedRowData.managerId.id
           : null
+      );
+
+      props.setAddEditUserModalAgentLimitChatsAssign(
+        props.addEditUserModalSelectedRowData.agentlimitchatassign != null
+          ? props.addEditUserModalSelectedRowData.agentlimitchatassign
+          : ""
       );
       var statusArray = [
         [0, "ACTIVE"],
@@ -204,6 +243,9 @@ const AddEditUserModal = (props) => {
       );
       props.setAddEditUserModalNumber(
         props.addEditUserModalSelectedRowData.number
+      );
+      props.setAddEditUserModalFacebookPages(
+        JSON.parse(props.addEditUserModalSelectedRowData.pages)
       );
     }
   }, [props.addEditUserModalSelectedRowData]);
@@ -226,6 +268,8 @@ const AddEditUserModal = (props) => {
       $designationId: ID!
       $managerId: ID
       $settings: String
+      $agentlimitchatassign: Int
+      $pages: String
     ) {
       updateuser(
         id: $id
@@ -241,6 +285,8 @@ const AddEditUserModal = (props) => {
         designationId: $designationId
         managerId: $managerId
         settings: $settings
+        agentlimitchatassign: $agentlimitchatassign
+        pages: $pages
       ) {
         success
         error
@@ -268,7 +314,7 @@ const AddEditUserModal = (props) => {
     if (editUserMutationResult && editUserMutationResult.updateuser) {
       if (editUserMutationResult.updateuser.success) {
         enqueueSnackbar("User update successfully.", { variant: "success" });
-        props.onChange();
+        props.onChange && props.onChange();
         handleClose();
       } else {
         enqueueSnackbar(editUserMutationResult.updateuser.error, {
@@ -292,6 +338,8 @@ const AddEditUserModal = (props) => {
       $designationId: ID!
       $managerId: ID
       $settings: String
+      $agentlimitchatassign: Int
+      $pages: String
     ) {
       adduser(
         username: $username
@@ -306,6 +354,8 @@ const AddEditUserModal = (props) => {
         designationId: $designationId
         managerId: $managerId
         settings: $settings
+        agentlimitchatassign: $agentlimitchatassign
+        pages: $pages
       ) {
         success
         error
@@ -375,17 +425,18 @@ const AddEditUserModal = (props) => {
       error: managersQueryError,
       data: managersQueryResult,
     },
-  ] = useLazyQuery(ManagersQuery);
+  ] = useLazyQuery(ManagersQuery, {
+    fetchPolicy: "network-only",
+  });
 
-  let isLoading =
-    designationsQueryLoading ||
-    managersQueryLoading ||
-    addUserMutationLoading ||
-    editUserMutationLoading;
   const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (isLoading) return;
+
+    var addEditUserModalFacebookPages = props.addEditUserModalFacebookPages
+      ? props.addEditUserModalFacebookPages
+      : [];
 
     let isValid = true;
     if (!usernameValidate()) {
@@ -415,8 +466,25 @@ const AddEditUserModal = (props) => {
     if (managerIdValidate && !managerIdValidate()) {
       isValid = false;
     }
+    if (agentLimitChatsAssignValidate && !agentLimitChatsAssignValidate()) {
+      isValid = false;
+    }
     if (!commentsValidate()) {
       isValid = false;
+    }
+    if (isValid && props.addEditUserModalFacebookPagesFieldToggle) {
+      if (addEditUserModalFacebookPages.length == 0) {
+        isValid = false;
+
+        props.setDialogOpen(true);
+        props.setDialogOkText("ok");
+        props.setDialogCancelText(null);
+        props.setDialogOkClick(() => {
+          props.setDialogOpen(false);
+        });
+        props.setDialogTitle("Field required");
+        props.setDialogContent("Please select one page atleast.");
+      }
     }
     if (isValid) {
       try {
@@ -436,6 +504,10 @@ const AddEditUserModal = (props) => {
               designationId: props.addEditUserModalDesignation,
               managerId: props.addEditUserModalManager,
               settings: JSON.stringify(props.addEditUserModalSettings),
+              agentlimitchatassign: parseInt(
+                props.addEditUserModalAgentLimitChatsAssign
+              ),
+              pages: JSON.stringify(addEditUserModalFacebookPages),
             },
           });
         } else {
@@ -456,6 +528,10 @@ const AddEditUserModal = (props) => {
               designationId: props.addEditUserModalDesignation,
               managerId: props.addEditUserModalManager,
               settings: JSON.stringify(props.addEditUserModalSettings),
+              agentlimitchatassign: parseInt(
+                props.addEditUserModalAgentLimitChatsAssign
+              ),
+              pages: JSON.stringify(addEditUserModalFacebookPages),
             },
           });
         }
@@ -467,30 +543,53 @@ const AddEditUserModal = (props) => {
     var objects = [];
 
     for (var dataKey in data) {
+   
       var item = data[dataKey];
       objects.push([item[key], item[value]]);
     }
     return objects;
   };
 
-  var visibleManagerField = false;
-
   if (designationsQueryResult) {
     let selectedDesignation = _.find(
       designationsQueryResult.designations,
       (item) => item.id == props.addEditUserModalDesignation
     );
+
     if (
       selectedDesignation &&
-      selectedDesignation.panelType == PanelType.AGENT
+      selectedDesignation.paneltype == PanelType.AGENT
     ) {
-      visibleManagerField = true;
+      props.setAddEditUserModalFacebookPagesFieldToggle(true);
+      props.setAddEditUserModalManagerFieldToggle(true);
+    } else {
+      props.setAddEditUserModalFacebookPagesFieldToggle(false);
+      props.setAddEditUserModalManagerFieldToggle(false);
+    }
+    if (
+      selectedDesignation &&
+      selectedDesignation.paneltype == PanelType.MANAGER
+    ) {
+      props.setAddEditUserModalAgentLimitChatsAssignFieldToggle(true);
+    } else {
+      props.setAddEditUserModalAgentLimitChatsAssignFieldToggle(false);
     }
   }
+  useEffect(() => {
+    if (props.addEditUserModalFacebookPagesFieldToggle) {
+      getPages();
+    }
+  }, [props.addEditUserModalFacebookPagesFieldToggle]);
 
   useEffect(() => {
-    getManagers();
-  }, [props.addEditUserModalDesignation, visibleManagerField]);
+    if (props.addEditUserModalManagerFieldToggle) {
+      getManagers({
+        variables: {
+          managersOnly: true,
+        },
+      });
+    }
+  }, [props.addEditUserModalManagerFieldToggle]);
 
   useEffect(() => {
     if (
@@ -501,9 +600,7 @@ const AddEditUserModal = (props) => {
       var parsedSettings = props.addEditUserModalSettings;
       try {
         parsedSettings = JSON.parse(parsedSettings);
-      } catch (e) {
-        
-      }
+      } catch (e) {}
       props.setAddEditUserModalSettings(
         new resolveSettings().resolveSettings(
           parsedSettings,
@@ -516,9 +613,38 @@ const AddEditUserModal = (props) => {
     }
   }, [props.addEditUserModalDesignation, designationsQueryResult]);
 
+  const GetPages = gql`
+    query Pages {
+      pages {
+        id
+        name
+        pageId
+        accesstoken
+      }
+    }
+  `;
+
+  let [
+    getPages,
+    {
+      loading: getPagesQueryLoading,
+      error: getUsersQueryError,
+      data: getPagesQueryResult,
+    },
+  ] = useLazyQuery(GetPages, {
+    fetchPolicy: "network-only",
+  });
+
+  let isLoading =
+    getPagesQueryLoading ||
+    designationsQueryLoading ||
+    managersQueryLoading ||
+    addUserMutationLoading ||
+    editUserMutationLoading;
+
   return (
     <Dialog
-    container={props.mainContainerRef.current}
+      container={props.mainContainerRef.current}
       aria-labelledby="customized-dialog-title"
       open={props.addEditUserModalToggle}
       onClose={handleClose}
@@ -543,6 +669,7 @@ const AddEditUserModal = (props) => {
         </IconButton>
       </DialogTitle>
       <DialogContent dividers>
+        <CustomDialogRedux />
         <form noValidate autoComplete="off" onSubmit={handleSubmit}>
           <FormControl className={classes.formControl}>
             <input
@@ -792,18 +919,52 @@ const AddEditUserModal = (props) => {
                 convertObjectToArray(
                   "id",
                   "name",
-                  designationsQueryResult.designations
+                  props.filterForManager
+                    ? _.filter(
+                        designationsQueryResult.designations,
+                        (item) => item.paneltype == PanelType.AGENT
+                      )
+                    : designationsQueryResult.designations
                 )
               }
               disabled={isLoading}
               onChange={(e) => {
+                
                 props.setAddEditUserModalDesignation(e.target.value);
               }}
               label="Select Designation"
               notEmpty={true}
             />
           </FormControl>
-          {visibleManagerField && (
+          {props.addEditUserModalAgentLimitChatsAssignFieldToggle && (
+            <FormControl className={classes.formControl}>
+              <ValidationTextField
+                min={0}
+                type="number"
+                className={classes.textField}
+                value={props.addEditUserModalAgentLimitChatsAssign}
+                InputProps={{
+                  classes: {
+                    root: classes.textFieldRoot,
+                    input: classes.textFieldInput,
+                    notchedOutline: classes.textFieldNotchedOutline,
+                  },
+                }}
+                validate={(validate) => {
+                  agentLimitChatsAssignValidate = validate;
+                }}
+                notEmpty={true}
+                disabled={isLoading}
+                onInput={(e) =>
+                  props.setAddEditUserModalAgentLimitChatsAssign(e.target.value)
+                }
+                label="Agent Limit Chats"
+                variant="outlined"
+              />
+            </FormControl>
+          )}
+
+          {props.addEditUserModalManagerFieldToggle && (
             <FormControl className={classes.formControl}>
               <ValidationSelectField
                 validate={(validate) => {
@@ -815,7 +976,7 @@ const AddEditUserModal = (props) => {
                   managersQueryResult &&
                   convertObjectToArray("id", "name", managersQueryResult.users)
                 }
-                disabled={isLoading}
+                disabled={isLoading || props.disableManager}
                 onChange={(e) =>
                   props.setAddEditUserModalManager(e.target.value)
                 }
@@ -840,6 +1001,58 @@ const AddEditUserModal = (props) => {
               }}
             />
           </FormControl>
+          {props.addEditUserModalFacebookPagesFieldToggle && (
+            <FormControl className={classes.formControl}>
+              <Container className={classes.facebookListContainer}>
+                {getPagesQueryResult &&
+                  getPagesQueryResult.pages.map((item) => {
+                    var addEditUserModalFacebookPages =
+                      props.addEditUserModalFacebookPages
+                        ? props.addEditUserModalFacebookPages
+                        : [];
+                    var isChecked = addEditUserModalFacebookPages.includes(
+                      item.pageId
+                    );
+              
+                    return (
+                      <FacebookList
+                        facebookPageImgClass={classes.facebookPageImg}
+                        facebookPageNameClass={classes.facebookPageName}
+                        isChecked={isChecked}
+                        onChange={(checked, id) => {
+                          var addEditUserModalFacebookPages =
+                            props.addEditUserModalFacebookPages
+                              ? props.addEditUserModalFacebookPages
+                              : [];
+
+                          if (checked) {
+                            const pageIdIncluded = _.find(
+                              addEditUserModalFacebookPages,
+                              (itemPage) => itemPage.pageId == id
+                            );
+                            if (!pageIdIncluded) {
+                              addEditUserModalFacebookPages.push(id);
+                            }
+                          } else {
+                            _.remove(
+                              addEditUserModalFacebookPages,
+                              (itemPage) => itemPage == id
+                            );
+                          }
+                          console.log("alooo 2", addEditUserModalFacebookPages);
+                          props.setAddEditUserModalFacebookPages(
+                            _.cloneDeep(addEditUserModalFacebookPages)
+                          );
+                        }}
+                        checkBox={true}
+                        facebookPageId={item.pageId}
+                        facebookPageName={item.name}
+                      />
+                    );
+                  })}
+              </Container>
+            </FormControl>
+          )}
           <Divider />
           {props.addEditUserModalDesignation ? (
             <SettingsComponent></SettingsComponent>
@@ -886,4 +1099,16 @@ export default connect(mapStateToProps, {
   setAddEditUserModalNumber,
   setAddEditUserModalReset,
   setAddEditUserModalSettings,
+  setAddEditUserModalManagerFieldToggle,
+  setAddEditUserModalFacebookPagesFieldToggle,
+  setAddEditUserModalFacebookPages,
+  setAddEditUserModalAgentLimitChatsAssignFieldToggle,
+  setAddEditUserModalAgentLimitChatsAssign,
+
+  setDialogOpen,
+  setDialogOkText,
+  setDialogCancelText,
+  setDialogOkClick,
+  setDialogTitle,
+  setDialogContent,
 })(AddEditUserModal);

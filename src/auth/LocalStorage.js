@@ -7,17 +7,10 @@ export const LocalStorage =  {
 
     localStorage.setItem("userPanelChatOnline", value);
   },
-  getUserPanelChatOnline() {
-    
-    return JSON.parse(localStorage.getItem("userPanelChatOnline"));
-  },
-  setUserPanelChatOnline(value) {
-
-    localStorage.setItem("userPanelChatOnline", value);
-  },
   getChatBoxFacebookIDsWithProfileDetails() {
-
-    return JSON.parse(localStorage.getItem("chatBoxFacebookIDsWithProfileDetails"));
+   
+    return localStorage.getItem("chatBoxFacebookIDsWithProfileDetails") ? 
+    JSON.parse(localStorage.getItem("chatBoxFacebookIDsWithProfileDetails")) : null;
   },
   setChatBoxFacebookIDsWithProfileDetails(value) {
 

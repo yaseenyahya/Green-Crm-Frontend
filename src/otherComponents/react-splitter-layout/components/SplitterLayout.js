@@ -207,13 +207,12 @@ class SplitterLayout extends React.Component {
       prevState.resizing ? { resizing: false } : null
     );
   }
-  splitterVisible = () =>{
-    if(this.state.collapseLeftPane.collapse){
+  splitterVisible = () => {
+    if (this.state.collapseLeftPane.collapse) {
       this.splitterToggle();
     }
-  }
+  };
   splitterToggle = () => {
-
     const containerRect = this.container.getBoundingClientRect();
     const splitterRect = this.splitter.getBoundingClientRect();
     const secondaryPaneSize = this.getSecondaryPaneSize(
@@ -229,15 +228,17 @@ class SplitterLayout extends React.Component {
     );
     this.setState({
       secondaryPaneSize,
-      collapseLeftPane:this.state.collapseLeftPane.collapse ?{
-        collapse: false,
-        revertSecondaryWidth: 0,
-      } : {
-        collapse: true,
-        revertSecondaryWidth: splitterRect.left,
-      },
+      collapseLeftPane: this.state.collapseLeftPane.collapse
+        ? {
+            collapse: false,
+            revertSecondaryWidth: 0,
+          }
+        : {
+            collapse: true,
+            revertSecondaryWidth: splitterRect.left,
+          },
     });
-  }
+  };
   render() {
     let containerClasses = "splitter-layout";
     if (this.props.customClassName) {
@@ -281,7 +282,7 @@ class SplitterLayout extends React.Component {
     return (
       <div
         className={containerClasses}
-        style={{height: this.props.layoutHeight}}
+        style={{ height: this.props.layoutHeight }}
         ref={(c) => {
           this.container = c;
         }}
@@ -291,26 +292,29 @@ class SplitterLayout extends React.Component {
           <div
             role="separator"
             className="layout-splitter"
+            style={{
+              width: this.props.splitterSeperatorWidth
+                ? this.props.splitterSeperatorWidth
+                : 20,
+            }}
             ref={(c) => {
               this.splitter = c;
             }}
             onMouseDown={this.handleSplitterMouseDown}
             onTouchStart={this.handleSplitterMouseDown}
           >
-            <div
-              onClick={this.splitterToggle}
-             className="collapse-button-container"
-            >
-              {this.state.collapseLeftPane.collapse ? (
-                <ArrowForwardIcon
-                 className="button"
-                />
-              ) : (
-                <ArrowBackIcon  className="button"
-                  
-                />
-              )}
-            </div>
+            {!this.props.hideCollapseButton && (
+              <div
+                onClick={this.splitterToggle}
+                className="collapse-button-container"
+              >
+                {this.state.collapseLeftPane.collapse ? (
+                  <ArrowForwardIcon className="button" />
+                ) : (
+                  <ArrowBackIcon className="button" />
+                )}
+              </div>
+            )}
           </div>
         )}
         {wrappedChildren.length > 1 && wrappedChildren[1]}
@@ -339,7 +343,7 @@ SplitterLayout.defaultProps = {
   vertical: false,
   percentage: false,
   primaryIndex: 0,
-  layoutHeight:"100%",
+  layoutHeight: "100%",
   primaryMinSize: 0,
   secondaryInitialSize: undefined,
   secondaryMinSize: 0,

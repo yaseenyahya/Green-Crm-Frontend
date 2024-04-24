@@ -14,6 +14,11 @@ import {
   ADD_EDIT_USER_MODAL_NUMBER,
   ADD_EDIT_USER_MODAL_RESET,
   ADD_EDIT_USER_MODAL_SETTINGS,
+ ADD_EDIT_USER_MODAL_MANAGER_FIELD_TOGGLE ,
+ ADD_EDIT_USER_MODAL_FACEBOOK_PAGES_FIELD_TOGGLE ,
+ ADD_EDIT_USER_MODAL_AGENT_LIMIT_CHATS_ASSIGN_FIELD_TOGGLE,
+ ADD_EDIT_USER_MODAL_AGENT_LIMIT_CHATS_ASSIGN,
+ ADD_EDIT_USER_MODAL_FACEBOOK_PAGES
 } from "../ActionTypes";
 
 export const setAddEditUserModalToggle = (addEditUserModalToggle) => {
@@ -133,6 +138,47 @@ export const setAddEditUserModalSettings = (addEditUserModalSettings) => {
     type: ADD_EDIT_USER_MODAL_SETTINGS,
     payload: {
       addEditUserModalSettings: addEditUserModalSettings,
+    },
+  };
+};
+
+export const setAddEditUserModalManagerFieldToggle = (addEditUserModalManagerFieldToggle) => {
+  return {
+    type: ADD_EDIT_USER_MODAL_MANAGER_FIELD_TOGGLE,
+    payload: {
+      addEditUserModalManagerFieldToggle: addEditUserModalManagerFieldToggle,
+    },
+  };
+};
+export const setAddEditUserModalFacebookPagesFieldToggle = (addEditUserModalFacebookPagesFieldToggle) => {
+  return {
+    type: ADD_EDIT_USER_MODAL_FACEBOOK_PAGES_FIELD_TOGGLE,
+    payload: {
+      addEditUserModalFacebookPagesFieldToggle: addEditUserModalFacebookPagesFieldToggle,
+    },
+  };
+};
+export const setAddEditUserModalFacebookPages = (addEditUserModalFacebookPages) => {
+  return {
+    type: ADD_EDIT_USER_MODAL_FACEBOOK_PAGES,
+    payload: {
+      addEditUserModalFacebookPages: addEditUserModalFacebookPages,
+    },
+  };
+};
+export const setAddEditUserModalAgentLimitChatsAssignFieldToggle = (addEditUserModalAgentLimitChatsAssignFieldToggle) => {
+  return {
+    type: ADD_EDIT_USER_MODAL_AGENT_LIMIT_CHATS_ASSIGN_FIELD_TOGGLE,
+    payload: {
+      addEditUserModalAgentLimitChatsAssignFieldToggle: addEditUserModalAgentLimitChatsAssignFieldToggle,
+    },
+  };
+};
+export const setAddEditUserModalAgentLimitChatsAssign = (addEditUserModalAgentLimitChatsAssign) => {
+  return {
+    type: ADD_EDIT_USER_MODAL_AGENT_LIMIT_CHATS_ASSIGN,
+    payload: {
+      addEditUserModalAgentLimitChatsAssign: addEditUserModalAgentLimitChatsAssign,
     },
   };
 };

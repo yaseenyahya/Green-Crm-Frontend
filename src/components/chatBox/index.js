@@ -5,11 +5,12 @@ import {
   IconButton,
   Tabs,
   Tab,
-  Ta,
   TextField,
-  Typography,
-  Avatar,
+  FormControlLabel,
   Tooltip,
+  Typography,
+  Button,
+  Checkbox,
 } from "@material-ui/core";
 import { connect } from "react-redux";
 import {
@@ -18,7 +19,12 @@ import {
   setChatBoxRecentChatListData,
   setChatBoxSelectedChatsOnFloating,
   setChatBoxFacebookIDsWithProfileDetails,
+  setChatBoxMarkNotToAddInChatCircleForLabel,
+  setChatBoxRecentSearchChatIds,
+  setChatBoxRecentChatListShowAllListToggle,
+  setChatBoxRecentChatListShowAllListByManagerToggle,
 } from "../../store/actions/ChatBoxActions";
+import { setUserPanelChatOnline } from "../../store/actions/UserPanelActions";
 import { makeStyles } from "@material-ui/core/styles";
 import clsx from "clsx";
 import ClearIcon from "@material-ui/icons/Clear";
@@ -30,7 +36,7 @@ import SplitterLayout from "../../otherComponents/react-splitter-layout/componen
 import "../../otherComponents/react-splitter-layout/stylesheets/index.css";
 import ChatContainer from "./ChatContainer";
 import ChatSubscription from "./ChatSubscription";
-import { useLazyQuery } from "@apollo/react-hooks";
+import { useLazyQuery, useMutation } from "@apollo/react-hooks";
 import { gql } from "apollo-boost";
 import { useSnackbar } from "notistack";
 import { Facebook } from "../../auth/Facebook";
@@ -38,6 +44,8 @@ import moment from "moment";
 import includes from "./includes";
 import FacebookAvatar from "./FacebookAvatar";
 import FacebookTypography from "./FacebookTypography";
+import UsersList from "./UsersList";
+import ManagersListTabContainer from "./ManagersListTabContainer";
 const useStyles = makeStyles((theme) => ({
   searchTodayChatsTextField: { width: "100%" },
 
@@ -114,6 +122,36 @@ const useStyles = makeStyles((theme) => ({
   chatBoxRecentSearchList: {
     overflowY: "auto",
     overflowX: "hidden",
+    marginTop: 4,
+  },
+  totalRecentChatsLoadText: {
+    background: "#bdbdbd",
+    color: "white",
+    padding: "0 5px",
+    fontSize: 13,
+    display: "flex",
+    alignItems: "center",
+  },
+  chatBoxSerachTextBoxContainer: {
+    display: "flex",
+  },
+  chatBoxRecentShowAllChatListToggleButton: {
+    color: "white",
+    background: "#f50057",
+    borderRadius: 0,
+    minWidth: 0,
+    "&:hover": {
+      background: "#e14079",
+    },
+  },
+  chatBoxRecentShowAllChatListToggleButtonDisabled: {
+    background: "#b7b3b3",
+  },
+  chatBoxRecentChatListShowAllListByManagerCheckbox: {
+    borderBottom: "1px solid #949494",
+    borderRadius: 0,
+    paddingBottom: 0,
+    paddingTop: 1,
   },
 }));
 
@@ -121,7 +159,7 @@ const ChatBox = (props) => {
   const { enqueueSnackbar } = useSnackbar();
 
   var splitterLayoutRef = React.useRef(null);
-  var splitterLayoutRef = React.useRef(null);
+  var splitterLayoutRef2 = React.useRef(null);
 
   var selectedChatsOnFloatingTabpanelItem = _.find(
     props.chatBoxSelectedChatsOnFloating,
@@ -131,113 +169,257 @@ const ChatBox = (props) => {
   ///////////////
   const classes = useStyles();
   var searchTodayChatsTextFieldTimeOut = null;
+
+  const SearchDataQuery = gql`
+    query GetSearchData($searchText: String!, $userID: ID, $managerId: ID) {
+      getsearchdata(
+        searchText: $searchText
+        userID: $userID
+        managerId: $managerId
+      ) {
+        details {
+          customerId
+          pageId
+        }
+        searchText
+        userID
+        managerId
+      }
+    }
+  `;
+  let [
+    getSearchData,
+    {
+      loading: searchDataQueryLoading,
+      error: searchDataQueryError,
+      data: searchDataQueryResult,
+    },
+  ] = useLazyQuery(SearchDataQuery, {
+    fetchPolicy: "network-only",
+  });
+  useEffect(() => {
+    if (searchDataQueryError) {
+      searchDataQueryError.graphQLErrors.map(({ message }, i) => {
+        enqueueSnackbar(message, { variant: "error" });
+      });
+    }
+  }, [searchDataQueryError]);
+  let userIdForRecentsChatQuery = new includes().getUserIdForRecentsChatQuery(
+    props.authUserId,
+    props.authPanelType,
+    props.usersListSelectedUser,
+    props.chatBoxRecentChatListShowAllListToggle
+  );
+  var managerIdForRecentsChatQuery =
+    new includes().getManagerIdForRecentsChatQuery(
+      props.authUserId,
+      props.authPanelType,
+      props.managersListSelectedManager,
+      props.chatBoxRecentChatListShowAllListByManagerToggle,
+      props.chatBoxRecentChatListShowAllListToggle
+    );
+
+  useEffect(() => {
+    if (searchDataQueryResult && searchDataQueryResult.getsearchdata) {
+      if (
+        props.chatBoxRecentSearchInputText ==
+        searchDataQueryResult.getsearchdata.searchText
+        && searchDataQueryResult.getsearchdata.userID == userIdForRecentsChatQuery
+        && searchDataQueryResult.getsearchdata.managerId == managerIdForRecentsChatQuery
+      ) {
+        props.setChatBoxRecentSearchChatIds(
+          searchDataQueryResult.getsearchdata.details
+        );
+      }
+    }
+  }, [searchDataQueryResult]);
   useEffect(() => {
     if (searchTodayChatsTextFieldTimeOut)
       searchTodayChatsTextFieldTimeOut.clear();
 
     searchTodayChatsTextFieldTimeOut = setTimeout(() => {
       props.setChatBoxRecentSearchText(props.chatBoxRecentSearchInputText);
+      if (props.chatBoxRecentSearchInputText != "") {
+        if (!new includes().isLabelSearch(props.chatBoxRecentSearchInputText)) {
+          if (userIdForRecentsChatQuery != "") {
+            getSearchData({
+              variables: {
+                searchText: props.chatBoxRecentSearchInputText.toLowerCase(),
+                userID: userIdForRecentsChatQuery,
+                managerId: managerIdForRecentsChatQuery,
+              },
+            });
+          }
+        }
+      } else {
+        props.setChatBoxRecentSearchChatIds([]);
+      }
     }, 500);
   }, [props.chatBoxRecentSearchInputText]);
 
-  const ChatLastDetailsQuery = gql`
-    query ChatLastDetailsById {
-      chatlastdetailsbyid {
-        id
-        customerId
-        pageId
-        messageId
-        messagetext
-        messagetimestamp
-        messagetype
-        agentId
-        alternateagentId
-        read
+  useEffect(() => {
+    Facebook.fbInt();
+  }, []);
+
+  const RemoveChatLabelMutation = gql`
+    mutation RemoveChatLabel(
+      $customerId: String!
+      $pageId: String!
+      $messagetext: String!
+    ) {
+      removechatlabel(
+        customerId: $customerId
+        pageId: $pageId
+        messagetext: $messagetext
+      ) {
+        success
+        error
+        result
       }
     }
   `;
+
   let [
-    getChatlastDetails,
+    removeChatLabel,
     {
-      loading: chatLastDetailsQueryLoading,
-      error: chatLastDetailsQueryError,
-      data: chatLastDetailsQueryResult,
+      loading: removeChatLabelMutationLoading,
+      error: removeChatLabelMutationError,
+      data: removeChatLabelMutationResult,
     },
-  ] = useLazyQuery(ChatLastDetailsQuery, {
-    fetchPolicy: "network-only",
-  });
+  ] = useMutation(RemoveChatLabelMutation);
 
-  useEffect(() => {
-    Facebook.fbInt();
-    getChatlastDetails();
-  }, []);
-
-  useEffect(() => {
-    if(props.chatBoxSubscriptionStatus)
-    getChatlastDetails();
-  }, [props.chatBoxSubscriptionStatus]);
   useEffect(() => {
     if (
-      chatLastDetailsQueryResult &&
-      chatLastDetailsQueryResult.chatlastdetailsbyid
+      removeChatLabelMutationResult &&
+      removeChatLabelMutationResult.removechatlabel
     ) {
-      var chatBoxRecentChatListData = [];
-      chatLastDetailsQueryResult.chatlastdetailsbyid.map((item) => {
-        
-
-        var messageText =
-          item.messagetype == "followuplabel"
-            ? JSON.parse(item.messagetext)
-            : item.messagetext;
-
-        messageText =
-          item.messagetype == "followuplabel"
-            ? `${messageText[0]} at ${moment.unix(messageText[1] / 1000).format("yyyy-MM-DD hh:mm A")}`
-            : messageText;
-
-        chatBoxRecentChatListData.push({
-          pageId: item.pageId,
-          customerId: item.customerId,
-          pageName:  "",
-          customerName:  "",
-          lastMessage: messageText,
-          lastMessageTimeStamp: item.messagetimestamp,
-          selected: false,
-          messageId: item.messageId,
-          read: item.read,
-          loading: false,
-        });
-      });
-
-      props.setChatBoxRecentChatListData(chatBoxRecentChatListData);
     }
-  }, [chatLastDetailsQueryResult]);
-
-  useEffect(() => {
-    if (chatLastDetailsQueryError) {
-      chatLastDetailsQueryError.graphQLErrors.map(({ message }, i) => {
-        enqueueSnackbar(message, { variant: "error" });
-      });
-      getChatlastDetails();
-    }
-  }, [chatLastDetailsQueryError]);
+  }, [removeChatLabelMutationResult]);
 
   var includesObj = new includes();
-  var isChatListLoading = chatLastDetailsQueryLoading;
-  return (
-    <SplitterLayout
-      ref={splitterLayoutRef}
-      percentage={true}
-      secondaryInitialSize={75}
-      layoutHeight={
-        props.chatBoxSelectedChatsOnFloating.length > 1
-          ? "calc(100vh - 52px - " + props.userPanelAppBarHeight + "px)"
-          : "calc(100vh - " + props.userPanelAppBarHeight + "px)"
-      }
+
+  var otherHeightDeduction = 0;
+  if (new includes().showChatBoxManagersList(props.authPanelType)) {
+    otherHeightDeduction = 52;
+  }
+
+  var layoutHeightOfMiddleContent =
+    props.chatBoxSelectedChatsOnFloating.length > 1
+      ? `calc(100vh - ${props.authMainAppBarHeight}px - 52px - ${otherHeightDeduction}px)`
+      : `calc(100vh - ${props.authMainAppBarHeight}px - ${otherHeightDeduction}px)`;
+
+  var heightOfListSearch = 41;
+  var layoutHeightOfLists =
+    props.chatBoxSelectedChatsOnFloating.length > 1
+      ? `calc(100vh - ${props.authMainAppBarHeight}px - 52px - ${heightOfListSearch}px - ${otherHeightDeduction}px)`
+      : `calc(100vh - ${props.authMainAppBarHeight}px - ${heightOfListSearch}px - ${otherHeightDeduction}px)`;
+
+  const bottomChatsTab = (
+    <Tabs
+      classes={{ scrollButtons: classes.bottomChatsTabScrollButtons }}
+      value={_.findIndex(
+        props.chatBoxSelectedChatsOnFloating,
+        (itm) => itm.selected == true
+      )}
+      onChange={(event, newValue) => {
+        var isCloseButtonClick = false;
+        var el = event.target;
+        while ((el = el.parentElement)) {
+          if (el.id == "closeButton") {
+            isCloseButtonClick = true;
+            break;
+          }
+        }
+        if (!isCloseButtonClick) {
+          var findPreviousChatsOnFloatingSelectedItem = _.find(
+            props.chatBoxSelectedChatsOnFloating,
+            (itm) => itm.selected == true
+          );
+
+          if (findPreviousChatsOnFloatingSelectedItem) {
+            findPreviousChatsOnFloatingSelectedItem.selected = false;
+          }
+          var findItem = _.find(
+            props.chatBoxSelectedChatsOnFloating,
+            (itm) => itm.customerId == newValue
+          );
+          if (findItem) findItem.selected = true;
+
+          props.setChatBoxSelectedChatsOnFloating(
+            _.cloneDeep(props.chatBoxSelectedChatsOnFloating)
+          );
+        }
+      }}
+      className={classes.bottomChatsTabs}
+      variant="scrollable"
+      aria-label="chat tabs"
     >
-      <Container disableGutters={true} className={classes.recentPagesLeftPane}>
-        {props.userPanelChatOnline && props.userpanelWsSubscriptionReady && (
-          <ChatSubscription  />
+      {_.filter(
+        props.chatBoxSelectedChatsOnFloating,
+        (itm) => !itm.selected
+      ).map((item) => {
+        return (
+          <Tab
+            key={`simple-tab-${item.customerId}`}
+            value={item.customerId}
+            aria-controls={`simple-tabpanel-${item.customerId}`}
+            className={classes.bottomChatsTab}
+            label={
+              <Tooltip
+                title={`${item.customerName}  @${item.pageName}`}
+                aria-label={`${item.customerName}  @${item.pageName}`}
+              >
+                <span className={classes.bottomChatsTabContainer}>
+                  <FacebookAvatar
+                    item={item}
+                    type="page"
+                    variant={"rounded"}
+                    className={classes.bottomChatsTabPageImage}
+                  ></FacebookAvatar>
+                  <FacebookAvatar
+                    item={item}
+                    type="customer"
+                    variant={"rounded"}
+                    className={classes.bottomChatsTabCustomerImage}
+                  ></FacebookAvatar>
+                  <FacebookTypography
+                    item={item}
+                    className={classes.bottomChatsTabText}
+                  ></FacebookTypography>
+                  <IconButton
+                    id={"closeButton"}
+                    className={classes.bottomChatsCloseButton}
+                    size="small"
+                    onClick={() => {
+                      _.remove(
+                        props.chatBoxSelectedChatsOnFloating,
+                        (itm) => itm.customerId == item.customerId
+                      );
+                      props.setChatBoxSelectedChatsOnFloating(
+                        _.cloneDeep(props.chatBoxSelectedChatsOnFloating)
+                      );
+                    }}
+                  >
+                    <CloseIcon />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            }
+          />
+        );
+      })}
+    </Tabs>
+  );
+  const chatListContainer = (
+    <Container disableGutters={true}>
+      <Container
+        disableGutters={true}
+        className={classes.chatBoxSerachTextBoxContainer}
+      >
+        {props.chatBoxRecentChatListDataTotalCount != null && (
+          <Typography className={classes.totalRecentChatsLoadText}>
+            {`${props.chatBoxRecentChatListData.length}/${props.chatBoxRecentChatListDataTotalCount}`}
+          </Typography>
         )}
         <TextField
           value={props.chatBoxRecentSearchInputText}
@@ -251,6 +433,7 @@ const ChatBox = (props) => {
                   className={classes.clearSearchButton}
                   onClick={() => {
                     props.setChatBoxRecentSearchText("");
+                    props.setChatBoxRecentSearchChatIds([]);
                     props.setChatBoxRecentSearchInputText("");
                   }}
                 >
@@ -270,135 +453,140 @@ const ChatBox = (props) => {
           }}
           placeholder="Search by customer or page name"
         ></TextField>
-        <ChatList
-          className={classes.chatBoxRecentSearchList}
-          containerHeight={
-            props.chatBoxSelectedChatsOnFloating.length > 1
-              ? `calc(100vh - ${props.userPanelAppBarHeight}px - 104px)`
-              : `calc(100vh - ${props.userPanelAppBarHeight}px - 52px)`
-          }
-          searchText={props.chatBoxRecentSearchText}
-          onItemClick={(item) => {
-            includesObj.bindItemToMainChat(
-              item,
-              props.chatBoxRecentChatListData,
-              props.setChatBoxRecentChatListData,
-              props.chatBoxSelectedChatsOnFloating,
-              props.setChatBoxSelectedChatsOnFloating
-            );
-          }}
-          isLoading={isChatListLoading}
-          data={props.chatBoxRecentChatListData}
-        />
-        <Tabs
-          classes={{ scrollButtons: classes.bottomChatsTabScrollButtons }}
-          value={_.findIndex(
-            props.chatBoxSelectedChatsOnFloating,
-            (itm) => itm.selected == true
-          )}
-          onChange={(event, newValue) => {
-            var isCloseButtonClick = false;
-            var el = event.target;
-            while ((el = el.parentElement)) {
-              if (el.id == "closeButton") {
-                isCloseButtonClick = true;
-                break;
-              }
-            }
-            if (!isCloseButtonClick) {
-              var findPreviousChatsOnFloatingSelectedItem = _.find(
-                props.chatBoxSelectedChatsOnFloating,
-                (itm) => itm.selected == true
-              );
-
-              if (findPreviousChatsOnFloatingSelectedItem) {
-                findPreviousChatsOnFloatingSelectedItem.selected = false;
-              }
-              var findItem = _.find(
-                props.chatBoxSelectedChatsOnFloating,
-                (itm) => itm.customerId == newValue
-              );
-              if (findItem) findItem.selected = true;
-
-              props.setChatBoxSelectedChatsOnFloating(
-                _.cloneDeep(props.chatBoxSelectedChatsOnFloating)
-              );
-            }
-          }}
-          className={classes.bottomChatsTabs}
-          variant="scrollable"
-          aria-label="chat tabs"
-        >
-          {_.filter(
-            props.chatBoxSelectedChatsOnFloating,
-            (itm) => !itm.selected
-          ).map((item) => {
-            return (
-              <Tab
-                key={`simple-tab-${item.customerId}`}
-                value={item.customerId}
-                aria-controls={`simple-tabpanel-${item.customerId}`}
-                className={classes.bottomChatsTab}
-                label={
-                  <Tooltip
-                    title={`${item.customerName}  @${item.pageName}`}
-                    aria-label={`${item.customerName}  @${item.pageName}`}
-                  >
-                    <span className={classes.bottomChatsTabContainer}>
-                      <FacebookAvatar
-                        item={item}
-                        type="page"
-                        variant={"rounded"}
-                        className={classes.bottomChatsTabPageImage}
-                      ></FacebookAvatar>
-                      <FacebookAvatar
-                        item={item}
-                        type="customer"
-                        variant={"rounded"}
-                        className={classes.bottomChatsTabCustomerImage}
-                      ></FacebookAvatar>
-                      <FacebookTypography item={item} className={classes.bottomChatsTabText}>
-                       
-                      </FacebookTypography>
-                      <IconButton
-                        id={"closeButton"}
-                        className={classes.bottomChatsCloseButton}
-                        size="small"
-                        onClick={() => {
-                          _.remove(
-                            props.chatBoxSelectedChatsOnFloating,
-                            (itm) => itm.customerId == item.customerId
-                          );
-                          props.setChatBoxSelectedChatsOnFloating(
-                            _.cloneDeep(props.chatBoxSelectedChatsOnFloating)
-                          );
-                        }}
-                      >
-                        <CloseIcon />
-                      </IconButton>
-                    </span>
-                  </Tooltip>
+        {new includes().chatBoxRecentShowAllChatListToggleButtonToPanelType(
+          props.authPanelType
+        ) && (
+          <>
+            {props.chatBoxRecentChatListShowAllListByManagerButtonToggle && (
+              <Tooltip title={"Show all chats by manager"}>
+                <Checkbox
+                  classes={{
+                    root: classes.chatBoxRecentChatListShowAllListByManagerCheckbox,
+                  }}
+                  checked={
+                    props.chatBoxRecentChatListShowAllListByManagerToggle
+                  }
+                  onChange={(event) => {
+                    props.setChatBoxRecentChatListShowAllListToggle(false);
+                    props.setChatBoxRecentChatListShowAllListByManagerToggle(
+                      event.target.checked
+                    );
+                  }}
+                  name="checkedA"
+                />
+              </Tooltip>
+            )}
+            <Button
+              disabled={props.chatBoxRecentChatListShowAllListToggle}
+              onClick={() => {
+                if (props.chatBoxRecentChatListShowAllListToggle) {
+                  props.setChatBoxRecentChatListShowAllListToggle(false);
+                } else {
+                  props.setChatBoxRecentChatListShowAllListToggle(true);
                 }
-              />
-            );
-          })}
-        </Tabs>
-      </Container>
-      <Container
-        maxWidth={false}
-        disableGutters={true}
-        className={classes.mainChatBox}
-      >
-        {selectedChatsOnFloatingTabpanelItem && (
-          <ChatContainer
-            chatBoxMessageBoxDynamicHeight={true}
-            chatTabHeaderStyles={classes.chatTabHeader}
-            chatMainContainerStyles={classes.chatMainContainer}
-            itemData={selectedChatsOnFloatingTabpanelItem}
-          ></ChatContainer>
+              }}
+              className={clsx(
+                classes.chatBoxRecentShowAllChatListToggleButton,
+                {
+                  [classes.chatBoxRecentShowAllChatListToggleButtonDisabled]:
+                    props.chatBoxRecentChatListShowAllListToggle,
+                }
+              )}
+            >
+              {"ALL"}
+            </Button>
+          </>
         )}
       </Container>
-    </SplitterLayout>
+      <ChatList
+        className={classes.chatBoxRecentSearchList}
+        containerHeight={layoutHeightOfLists}
+        searchText={props.chatBoxRecentSearchText}
+        searchIds={props.chatBoxRecentSearchChatIds}
+        onItemClick={(item) => {
+          includesObj.bindItemToMainChat(
+            item,
+            props.chatBoxRecentChatListData,
+            props.setChatBoxRecentChatListData,
+            props.chatBoxSelectedChatsOnFloating,
+            props.setChatBoxSelectedChatsOnFloating,
+            props.setChatBoxMarkNotToAddInChatCircleForLabel
+          );
+        }}
+        onLabelRemove={(text, pageId, customerId) => {
+          removeChatLabel({
+            variables: {
+              customerId: customerId,
+              pageId: pageId,
+              messagetext: text,
+            },
+          });
+        }}
+      />
+
+      {!new includes().showChatBoxUsersList(props.authPanelType) &&
+        bottomChatsTab}
+    </Container>
+  );
+  return (
+    <>
+      {new includes().showChatBoxManagersList(props.authPanelType) && (
+        <ManagersListTabContainer />
+      )}
+      <SplitterLayout
+        ref={splitterLayoutRef}
+        percentage={true}
+        secondaryInitialSize={67}
+        layoutHeight={layoutHeightOfMiddleContent}
+      >
+        <Container
+          disableGutters={true}
+          className={classes.recentPagesLeftPane}
+        >
+          {props.authUserWsSubscriptionReady && <ChatSubscription />}
+          {new includes().showChatBoxUsersList(props.authPanelType) ? (
+            <SplitterLayout
+              splitterSeperatorWidth={3}
+              hideCollapseButton={true}
+              ref={splitterLayoutRef2}
+              percentage={true}
+              secondaryInitialSize={50}
+              layoutHeight={layoutHeightOfMiddleContent}
+            >
+              <Container disableGutters={true} className={classes.userListPane}>
+                <UsersList
+                  managerId={new includes().getUserIdForUserListQuery(
+                    props.authUserId,
+                    props.authPanelType,
+                    props.managersListSelectedManager
+                  )}
+                  containerHeight={layoutHeightOfLists}
+                />
+              </Container>
+              {chatListContainer}
+            </SplitterLayout>
+          ) : (
+            chatListContainer
+          )}
+          {new includes().showChatBoxUsersList(props.authPanelType) &&
+            bottomChatsTab}
+        </Container>
+        <Container
+          maxWidth={false}
+          disableGutters={true}
+          className={classes.mainChatBox}
+        >
+          {selectedChatsOnFloatingTabpanelItem && (
+            <ChatContainer
+              chatBoxMessageBoxDynamicHeight={true}
+              chatTabHeaderStyles={classes.chatTabHeader}
+              chatMainContainerStyles={classes.chatMainContainer}
+              itemData={selectedChatsOnFloatingTabpanelItem}
+            ></ChatContainer>
+          )}
+        </Container>
+      </SplitterLayout>
+    </>
   );
 };
 
@@ -406,6 +594,9 @@ const mapStateToProps = (state) => {
   return {
     ...state.UserPanelReducer,
     ...state.ChatBoxReducer,
+    ...state.AuthReducer,
+    ...state.UsersListReducer,
+    ...state.ManagersListReducer,
   };
 };
 export default connect(mapStateToProps, {
@@ -414,4 +605,9 @@ export default connect(mapStateToProps, {
   setChatBoxRecentChatListData,
   setChatBoxSelectedChatsOnFloating,
   setChatBoxFacebookIDsWithProfileDetails,
+  setUserPanelChatOnline,
+  setChatBoxMarkNotToAddInChatCircleForLabel,
+  setChatBoxRecentSearchChatIds,
+  setChatBoxRecentChatListShowAllListToggle,
+  setChatBoxRecentChatListShowAllListByManagerToggle,
 })(ChatBox);

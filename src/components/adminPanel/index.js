@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 
 import {
   Container,
@@ -9,7 +9,7 @@ import {
   Typography,
   IconButton,
   Box,
-  Switch,
+  Fab,
   FormControlLabel,
 } from "@material-ui/core";
 import { connect } from "react-redux";
@@ -17,14 +17,19 @@ import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
 import ChevronRightIcon from "@material-ui/icons/ChevronRight";
 import { makeStyles } from "@material-ui/core/styles";
 import { BrowserRouter } from "react-router-dom";
+import NotificationMenu from "../NotificationMenu";
 import clsx from "clsx";
 import {
   setAdminPanelDrawerToggle,
   setAdminPanelFullscreenToggle,
-  setAdminPanelAppBarHeight,
   setAdminPanelClosedDrawerToggle,
   setAdminPanelChatOnline,
+  setAdminPanelChatBoxDrawerToggle,
 } from "../../store/actions/AdminpanelActions";
+import {
+  setAuthUserWsSubscriptionReady,
+  setAuthMainAppBarHeight,
+} from "../../store/actions/AuthActions";
 import NotificationsNoneIcon from "@material-ui/icons/NotificationsNone";
 import Fullscreen from "fullscreen-react";
 import FullscreenIcon from "@material-ui/icons/Fullscreen";
@@ -37,6 +42,15 @@ import ProfilePictureMenu from "./ProfilePictureMenu";
 import { Redirect } from "react-router-dom";
 import { setRedirectToPath } from "../../store/actions/RedirectToPathActions";
 import SettingsMenu from "./SettingsMenu";
+import { Facebook } from "../../auth/Facebook";
+import LogoutSubscription from "../loginForgetPassword/LogoutSubscription";
+import ChatSubscriptionStatus from "../chatBox/ChatSubscriptionStatus";
+import ChatPendingCountContainer from "../chatBox/ChatPendingCountContainer";
+import includes from "../chatBox/includes";
+import ChatBox from "../chatBox";
+import ChatBoxCustomerFormModal from "../chatBox/ChatBoxCustomerFormModal";
+import ChatIcon from "@material-ui/icons/Chat";
+import CloseIcon from "@material-ui/icons/Close";
 const drawerWidth = 240;
 const useStyles = makeStyles((theme) => ({
   mainContainer: {
@@ -56,6 +70,14 @@ const useStyles = makeStyles((theme) => ({
   appBarShift: {
     marginLeft: drawerWidth,
     width: `calc(100% - ${drawerWidth}px)`,
+    transition: theme.transitions.create(["width", "margin"], {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+  },
+  drawerShiftFull: {
+    marginLeft: 0,
+    width: `calc(100%)`,
     transition: theme.transitions.create(["width", "margin"], {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.enteringScreen,
@@ -84,6 +106,13 @@ const useStyles = makeStyles((theme) => ({
   },
   drawerOpen: {
     width: drawerWidth,
+    transition: theme.transitions.create("width", {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+  },
+  drawerHide: {
+    width: 0,
     transition: theme.transitions.create("width", {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.enteringScreen,
@@ -170,10 +199,37 @@ const useStyles = makeStyles((theme) => ({
     color: "black",
     fontSize: 21,
   },
+  chatToggleIcon: {},
+  chatToggleButton: {
+    position: "fixed",
+    background: "#e14079",
+    bottom: 50,
+    right: 20,
+    zIndex: 10000,
+    color: "white",
+    "&:hover": {
+      background: "#d21457",
+    },
+  },
+  adminPanelChatBoxDrawerPaper: {
+    marginTop: ({ authMainAppBarHeight }) => authMainAppBarHeight,
+    borderTop: "1px solid gray",
+    width: "100%",
+  },
+  logo: {
+    width: 65,
+    margin: "0 15px",
+  },
+  profilePic: {
+    paddingBottom: 0,
+    paddingTop: 5,
+  },
 }));
 
 const AdminPanel = (props) => {
-  const classes = useStyles();
+  const classes = useStyles({
+    authMainAppBarHeight: props.authMainAppBarHeight,
+  });
 
   const drawerRef = useRef(null);
 
@@ -191,6 +247,14 @@ const AdminPanel = (props) => {
       props.setAdminPanelClosedDrawerToggle(false);
     }
   };
+  useEffect(() => {
+    new includes().setSubscriptionReadyIfUserIdIsAvailable(
+      props.authUserId,
+      props.wsLink,
+      props.setAuthUserWsSubscriptionReady
+    );
+  }, [props.authUserId]);
+
   const MeQuery = gql`
     query Me($accessToken: String) {
       me(accessToken: $accessToken) {
@@ -213,7 +277,19 @@ const AdminPanel = (props) => {
     fetchPolicy: "network-only",
   });
 
+  useEffect(() => {
+    Facebook.fbInt();
+  }, []);
+
+  useEffect(() => {
+    if (props.adminPanelChatBoxDrawerToggle)
+      document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "auto";
+  }, [props.adminPanelChatBoxDrawerToggle]);
+
   const appBarRef = useRef(null);
+
+  const mainContainerRef = useRef(null);
 
   if (props.redirectToPath) {
     const path = props.redirectToPath;
@@ -224,30 +300,94 @@ const AdminPanel = (props) => {
   return (
     <Fullscreen isEnter={props.adminPanelFullscreenToggle}>
       <Container
+        ref={mainContainerRef}
         maxWidth={false}
         disableGutters={true}
         className={classes.mainContainer}
       >
+        {!props.adminPanelChatBoxDrawerToggle && (
+          <Fab
+            onClick={() => {
+              props.setAdminPanelChatBoxDrawerToggle(true);
+              props.setAdminPanelDrawerToggle(true);
+              props.setAdminPanelClosedDrawerToggle(true);
+            }}
+            variant="extended"
+            className={classes.chatToggleButton}
+          >
+            <ChatIcon className={classes.chatToggleIcon} /> CHAT
+          </Fab>
+        )}
+
+        <Drawer
+          container={mainContainerRef.current}
+          classes={{
+            paper: classes.adminPanelChatBoxDrawerPaper,
+          }}
+          hideBackdrop={true}
+          style={{ width: "100vh", marginTop: props.authMainAppBarHeight }}
+          anchor={"right"}
+          open={props.adminPanelChatBoxDrawerToggle}
+          onClose={() => {
+            props.setAdminPanelChatBoxDrawerToggle(false);
+            props.setAdminPanelDrawerToggle(true);
+            props.setAdminPanelClosedDrawerToggle(false);
+          }}
+        >
+          <ChatBox />
+          {props.chatBoxCustomerFormData.map((data) => {
+            return (
+              <ChatBoxCustomerFormModal
+                modalData={data.modalData}
+                customerData={data.customerData}
+                formData={data.formData}
+              />
+            );
+          })}
+        </Drawer>
+
+        {props.authUserWsSubscriptionReady && <LogoutSubscription />}
         <AppBar
           onLoad={() => {
-            if (appBarRef.current)
-              props.setAdminPanelAppBarHeight(appBarRef.current.clientHeight);
+            if (appBarRef.current) {
+              props.setAuthMainAppBarHeight(appBarRef.current.clientHeight);
+            }
           }}
           ref={appBarRef}
           position="fixed"
           className={clsx(classes.appBar, {
             [classes.appBarShift]: props.adminPanelDrawerToggle,
             [classes.appBarShiftInverse]: !props.adminPanelDrawerToggle,
+            [classes.drawerShiftFull]: props.adminPanelChatBoxDrawerToggle,
           })}
         >
           <Toolbar disableGutters={true}>
-            <IconButton onClick={handleDrawerToggle}>
-              {props.adminPanelDrawerToggle ? (
-                <ChevronLeftIcon />
-              ) : (
-                <ChevronRightIcon />
-              )}
-            </IconButton>
+            {props.adminPanelChatBoxDrawerToggle ? (
+              <IconButton
+                onClick={() => {
+                  props.setAdminPanelChatBoxDrawerToggle(false);
+                  props.setAdminPanelDrawerToggle(true);
+                  props.setAdminPanelClosedDrawerToggle(false);
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
+            ) : (
+              <IconButton onClick={handleDrawerToggle}>
+                {props.adminPanelDrawerToggle ? (
+                  <ChevronLeftIcon />
+                ) : (
+                  <ChevronRightIcon />
+                )}
+              </IconButton>
+            )}
+            {props.adminPanelChatBoxDrawerToggle && (
+              <img
+                className={classes.logo}
+                src={process.env.PUBLIC_URL + "/greenmarketingicon.png"}
+                alt="logo"
+              ></img>
+            )}
             <IconButton onClick={handleFullScreenToggle}>
               {!props.adminPanelFullscreenToggle ? (
                 <FullscreenIcon className={classes.fullscreenIcon} />
@@ -255,25 +395,11 @@ const AdminPanel = (props) => {
                 <FullscreenExitIcon className={classes.fullscreenIcon} />
               )}
             </IconButton>
-            {props.authSettings &&
-              props.authSettings.Other &&
-              props.authSettings.Other.Get_Online && (
-                <FormControlLabel
-                  classes={{ label: classes.onlineStatusSwitchLabel }}
-                  control={
-                    <Switch
-                      checked={Boolean(props.adminPanelChatOnline)}
-                      onChange={(event) => {
-                        props.setAdminPanelChatOnline(event.target.checked);
-                      }}
-                      name="onlineStatus"
-                      inputProps={{ "aria-label": "secondary checkbox" }}
-                    />
-                  }
-                  label={props.adminPanelChatOnline ? "Online" : "Offline"}
-                />
-              )}
-
+            <ChatSubscriptionStatus
+              status={props.chatBoxSubscriptionStatus}
+              isOnline={props.userPanelChatOnline}
+            />
+            <ChatPendingCountContainer mainContainerRef={mainContainerRef} />
             <Box
               flex={1}
               display={"flex"}
@@ -281,7 +407,7 @@ const AdminPanel = (props) => {
               alignItems={"center"}
             >
               <Container
-              maxWidth={false}
+                maxWidth={false}
                 disableGutters={true}
                 className={classes.userInfoContainer}
               >
@@ -293,14 +419,13 @@ const AdminPanel = (props) => {
                   {meQueryResult && meQueryResult.me.name}
                 </Typography>
                 <ProfilePictureMenu
+                  mainContainerRef={mainContainerRef}
+                  profilePicClassName={classes.profilePic}
                   profilePicture={meQueryResult && meQueryResult.me.picture}
                 />
               </Container>
-              <IconButton onClick={() => {}}>
-                <span className={classes.notificationCountIcon}>0</span>
-                <NotificationsNoneIcon className={classes.notificationIcon} />
-              </IconButton>
-              <SettingsMenu />
+              <NotificationMenu />
+              <SettingsMenu mainContainerRef={mainContainerRef} />
             </Box>
           </Toolbar>
         </AppBar>
@@ -311,11 +436,13 @@ const AdminPanel = (props) => {
             className={clsx(classes.drawer, {
               [classes.drawerOpen]: props.adminPanelDrawerToggle,
               [classes.drawerClose]: !props.adminPanelDrawerToggle,
+              [classes.drawerHide]: props.adminPanelChatBoxDrawerToggle,
             })}
             classes={{
               paper: clsx(classes.drawerPaper, {
                 [classes.drawerOpen]: props.adminPanelDrawerToggle,
                 [classes.drawerClose]: !props.adminPanelDrawerToggle,
+                [classes.drawerHide]: props.adminPanelChatBoxDrawerToggle,
               }),
             }}
           >
@@ -352,13 +479,16 @@ const mapStateToProps = (state) => {
     ...state.AdminPanelReducer,
     ...state.RedirectToPathReducer,
     ...state.AuthReducer,
+    ...state.ChatBoxReducer,
   };
 };
 export default connect(mapStateToProps, {
   setRedirectToPath,
   setAdminPanelDrawerToggle,
   setAdminPanelFullscreenToggle,
-  setAdminPanelAppBarHeight,
+  setAuthMainAppBarHeight,
   setAdminPanelClosedDrawerToggle,
   setAdminPanelChatOnline,
+  setAuthUserWsSubscriptionReady,
+  setAdminPanelChatBoxDrawerToggle,
 })(AdminPanel);

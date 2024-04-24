@@ -22,6 +22,14 @@ const useStyles = makeStyles((theme) => ({
       duration: theme.transitions.duration.enteringScreen,
     }),
   },
+  drawerShiftFull:{
+    marginLeft:0,
+    width: `calc(100%)`,
+    transition: theme.transitions.create(["width", "margin"], {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+  },
   drawerShiftInverse: {
     marginLeft: theme.spacing(7) + 2,
     width: `calc(100% - ${theme.spacing(7) + 2}px)`,
@@ -40,9 +48,10 @@ const MainContentContainer = (props) => {
       className={clsx(classes.mainContentContainer, {
         [classes.drawerShift]: props.adminPanelDrawerToggle,
         [classes.drawerShiftInverse]: !props.adminPanelDrawerToggle,
+        [classes.drawerShiftFull]:props.adminPanelChatBoxDrawerToggle
       })}
       style={{
-        marginTop: props.adminPanelAppBarHeight,
+        marginTop: props.authMainAppBarHeight,
         width: `calc(100% - ${props.adminPanelDrawerWidth}px)`,
       }}
     >
@@ -65,7 +74,8 @@ const MainContentContainer = (props) => {
 };
 
 const mapStateToProps = (state) => {
-  return { ...state.AdminPanelReducer };
+  return { ...state.AdminPanelReducer,
+    ...state.AuthReducer };
 };
 export default connect(mapStateToProps, {
   setAdminPanelDrawerToggle,

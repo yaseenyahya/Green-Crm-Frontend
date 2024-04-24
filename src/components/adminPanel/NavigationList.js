@@ -11,13 +11,17 @@ import InboxIcon from "@material-ui/icons/MoveToInbox";
 import MailIcon from "@material-ui/icons/Mail";
 import { makeStyles } from "@material-ui/core/styles";
 import clsx from "clsx";
-import { setAdminPanelDrawerToggle } from "../../store/actions/AdminpanelActions";
+import {
+  setAdminPanelDrawerToggle,
+  setAdminPanelChatBoxDrawerToggle,
+} from "../../store/actions/AdminpanelActions";
 import GroupAddIcon from "@material-ui/icons/GroupAdd";
 import SupervisorAccountIcon from "@material-ui/icons/SupervisorAccount";
 import AssignmentIndIcon from "@material-ui/icons/AssignmentInd";
 import FacebookIcon from "@material-ui/icons/Facebook";
 import MessageIcon from "@material-ui/icons/Message";
 import { useLocation } from "react-router-dom";
+import { useEffect } from "react";
 const useStyles = makeStyles((theme) => ({
   navListItem: {
     "&:hover": {
@@ -54,6 +58,13 @@ const NavigationList = (props) => {
   const classes = useStyles();
   const location = useLocation();
 
+  useEffect(() => {
+    if (location.pathname == "/chat") {
+      props.setAdminPanelChatBoxDrawerToggle(true);
+    } else {
+      props.setAdminPanelChatBoxDrawerToggle(false);
+    }
+  }, [location]);
   return (
     <Container
       disableGutters={true}
@@ -71,7 +82,9 @@ const NavigationList = (props) => {
           to="/addusers"
           className={clsx(classes.listLink, {
             [classes.linkSelected]:
-              location.pathname == "/addusers" || location.pathname == "/admin" || location.pathname == "/",
+              location.pathname == "/addusers" ||
+              location.pathname == "/admin" ||
+              location.pathname == "/",
           })}
         >
           <ListItem button key={"addusers"} className={classes.navListItem}>
@@ -87,8 +100,7 @@ const NavigationList = (props) => {
         <Link
           to="/adddesignations"
           className={clsx(classes.listLink, {
-            [classes.linkSelected]:
-              location.pathname == "/adddesignations" ,
+            [classes.linkSelected]: location.pathname == "/adddesignations",
           })}
         >
           <ListItem
@@ -108,8 +120,7 @@ const NavigationList = (props) => {
         <Link
           to="/addprofiles"
           className={clsx(classes.listLink, {
-            [classes.linkSelected]:
-              location.pathname == "/addprofiles" ,
+            [classes.linkSelected]: location.pathname == "/addprofiles",
           })}
         >
           <ListItem button key={"addprofiles"} className={classes.navListItem}>
@@ -125,8 +136,7 @@ const NavigationList = (props) => {
         <Link
           to="/addpages"
           className={clsx(classes.listLink, {
-            [classes.linkSelected]:
-              location.pathname == "/addpages" ,
+            [classes.linkSelected]: location.pathname == "/addpages",
           })}
         >
           <ListItem button key={"addpages"} className={classes.navListItem}>
@@ -140,23 +150,7 @@ const NavigationList = (props) => {
           </ListItem>
         </Link>
       </List>
-      <Divider />
-      <List>
-        <Link
-          to="/chat"
-          className={clsx(classes.listLink, {
-            [classes.linkSelected]:
-              location.pathname == "/chat" ,
-          })}
-        >
-          <ListItem button key={"Chat"}>
-            <ListItemIcon>
-              <MessageIcon className={classes.navListIcon} />
-            </ListItemIcon>
-            <ListItemText className={classes.navListText} primary={"Chat"} />
-          </ListItem>
-        </Link>
-      </List>
+      
     </Container>
   );
 };
@@ -166,4 +160,5 @@ const mapStateToProps = (state) => {
 };
 export default connect(mapStateToProps, {
   setAdminPanelDrawerToggle,
+  setAdminPanelChatBoxDrawerToggle,
 })(NavigationList);

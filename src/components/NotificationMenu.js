@@ -22,6 +22,7 @@ import {
 import {
   setChatBoxRecentChatListData,
   setChatBoxSelectedChatsOnFloating,
+  setChatBoxMarkNotToAddInChatCircleForLabel
 } from "../store/actions/ChatBoxActions";
 import NotificationsNoneIcon from "@material-ui/icons/NotificationsNone";
 import { useLazyQuery, useMutation } from "@apollo/react-hooks";
@@ -255,11 +256,13 @@ const NotificationMenu = (props) => {
                               messageId: null,
                               read: item.read,
                               loading: false,
+                              marknottoaddinchatcircle:item.marknottoaddinchatcircle
                             },
                             props.chatBoxRecentChatListData,
                             props.setChatBoxRecentChatListData,
                             props.chatBoxSelectedChatsOnFloating,
-                            props.setChatBoxSelectedChatsOnFloating
+                            props.setChatBoxSelectedChatsOnFloating,
+                            props.setChatBoxMarkNotToAddInChatCircleForLabel
                           );
 
                           markReadChat({
@@ -319,4 +322,5 @@ export default connect(mapStateToProps, {
   setNotificationMenuShowAlert,
   setChatBoxRecentChatListData,
   setChatBoxSelectedChatsOnFloating,
+  setChatBoxMarkNotToAddInChatCircleForLabel
 })(NotificationMenu);

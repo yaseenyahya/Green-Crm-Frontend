@@ -6,15 +6,21 @@ import { useQuery } from "@apollo/react-hooks";
 import PanelType from "../auth/PanelType";
 import AdminPanel from "../components/adminPanel";
 import UserPanel from "../components/userPanel";
+import ManagerUserPanel from "../components/managerUserPanel";
 import {
   setAuthSettings,
   setAuthUserId,
   setAuthPanelType,
   setAuthPagesData,
+  setAuthUserPagesAssigned,
+  setAuthUserSwitchAccountSettings,
+  setAuthUserName
 } from "../store/actions/AuthActions";
+import { setUserPanelChatOnline } from "../store/actions/UserPanelActions";
 import { connect } from "react-redux";
 import resolveSettings from "../auth/resolveSettings";
 import { Container } from "@material-ui/core";
+
 
 const ProtectedRoute = (props, { ...rest }) => {
   const MeQuery = gql`
@@ -27,6 +33,9 @@ const ProtectedRoute = (props, { ...rest }) => {
           paneltype
         }
         pagesData
+        pages
+        switchaccountsettings
+        onlineStatus
       }
     }
   `;
@@ -41,8 +50,14 @@ const ProtectedRoute = (props, { ...rest }) => {
 
   useEffect(() => {
     if (meQueryResult && meQueryResult.me) {
+      props.setUserPanelChatOnline(JSON.parse(meQueryResult.me.onlineStatus));
       props.setAuthUserId(meQueryResult.me.id);
+      props.setAuthUserName(meQueryResult.me.name);
+      props.setAuthUserSwitchAccountSettings(meQueryResult.me.switchaccountsettings);
+     
       props.setAuthPanelType(meQueryResult.me.designation.paneltype);
+      props.setAuthUserPagesAssigned(meQueryResult.me.pages != null ? JSON.parse(meQueryResult.me.pages):[]);
+     
       var parsedPagesData = [];
       try {
         parsedPagesData = JSON.parse(meQueryResult.me.pagesData);
@@ -85,6 +100,13 @@ const ProtectedRoute = (props, { ...rest }) => {
 
           />
         );
+        case PanelType.MANAGER:
+        return (
+          <ManagerUserPanel
+            wsLink={props.wsLink}
+
+          />
+        );
       default:
         return null;
     }
@@ -118,4 +140,8 @@ export default connect(null, {
   setAuthUserId,
   setAuthPanelType,
   setAuthPagesData,
+  setAuthUserPagesAssigned,
+  setAuthUserSwitchAccountSettings,
+  setUserPanelChatOnline,
+  setAuthUserName
 })(ProtectedRoute);

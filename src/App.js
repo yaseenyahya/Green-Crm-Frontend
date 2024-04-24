@@ -11,9 +11,13 @@ import { split, HttpLink } from "@apollo/client";
 import { getMainDefinition } from "@apollo/client/utilities";
 import { WebSocketLink } from "@apollo/client/link/ws";
 import { ApolloClient, InMemoryCache } from "@apollo/client";
+import { ApolloLink, concat } from 'apollo-link';
+import { onError } from 'apollo-link-error';
 import { useState } from "react";
-import {setChatBoxSubscriptionStatus} from "./store/actions/ChatBoxActions";
+import { relayStylePagination } from "@apollo/client/utilities";
+import { setChatBoxSubscriptionStatus } from "./store/actions/ChatBoxActions";
 //import { SubscriptionClient } from "subscriptions-transport-ws";
+import _ from "lodash";
 const theme = createMuiTheme({
   palette: {
     primary: {
@@ -22,8 +26,10 @@ const theme = createMuiTheme({
   },
 });
 function App() {
+  
   const { enqueueSnackbar } = useSnackbar();
   function linkErrorHandler({ graphQLErrors, networkError }) {
+
     if (graphQLErrors)
       graphQLErrors.map(({ message, locations, path }) => {
         console.log(
@@ -54,7 +60,7 @@ function App() {
       lazy: true,
     },
   });
-  
+
   wsLink.subscriptionClient.on("connecting", () => {
     store.dispatch(setChatBoxSubscriptionStatus(false));
     console.log("connecting subs " + new Date().toString());
@@ -84,10 +90,20 @@ function App() {
     console.log(error.message + "  " + new Date().toString());
   });
 
- 
   wsLink.subscriptionClient.maxConnectTimeGenerator.duration = () =>
     wsLink.subscriptionClient.maxConnectTimeGenerator.max;
 
+    const logoutLink = onError(({graphQLErrors, networkError }) => {
+      
+      if(graphQLErrors){
+        if(graphQLErrors.AuthenticationError){
+         
+          window.location = "/login";
+        }
+      }
+      //if(networkError.statusCode == 404)
+         // 
+    });
 
   const splitLink = split(
     ({ query }) => {
@@ -101,12 +117,14 @@ function App() {
     httpLink
   );
   const ApolloClient_ = new ApolloClient({
-    link: splitLink,
+    link: logoutLink.concat(splitLink),
     onError: linkErrorHandler,
 
     cache: new InMemoryCache(),
   });
-
+  window.Object.freeze = function (obj) {
+    return obj;
+  }; // for Cannot add property tableData, object is not extensible Error
   return (
     <BrowserRouter>
       <ApolloProvider client={ApolloClient_}>
@@ -125,10 +143,7 @@ function App() {
                   />
                 )}
               ></Route>
-              <ProtectedRoute
-                wsLink={wsLink}
-                path="/"
-              ></ProtectedRoute>
+              <ProtectedRoute wsLink={wsLink} path="/"></ProtectedRoute>
 
               <Route path="*" render={() => <div>404</div>}></Route>
             </Switch>

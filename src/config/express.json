@@ -18,10 +18,10 @@
         "facebook_app_secret":"5b84f6b082ac1cef631126802976275c"
 },
     "production": {
-        "port": "",
+        "port": "8081",
         "graphql_endpoint":"graphql",
-        "graphql_domain":"https://greenmarketingcrm.herokuapp.com",
-        "graphql_subscription_domain":"wss://greenmarketingcrm.herokuapp.com",
+        "graphql_domain":"https://salescrm.greenmarketing.us",
+        "graphql_subscription_domain":"wss://salescrm.greenmarketing.us",
         "graphql_subscription_endpoint":"subscriptions",
         "facebook_app_id":"182095643716855",
     "facebook_app_secret":"5b84f6b082ac1cef631126802976275c"
